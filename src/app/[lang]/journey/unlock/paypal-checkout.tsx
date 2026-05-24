@@ -40,7 +40,7 @@ export function PayPalCheckout({ lang }: { lang: string }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase
-          .from("profiles")
+          .from("freeme_profiles")
           .update({ paid: true })
           .eq("id", user.id);
       }

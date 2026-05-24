@@ -21,7 +21,7 @@ export default async function UnlockPage({
   if (!user) redirect(`/${lang}/auth/login`);
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("freeme_profiles")
     .select("display_name, paid")
     .eq("id", user.id)
     .single();
@@ -29,7 +29,7 @@ export default async function UnlockPage({
   if (profile?.paid) redirect(`/${lang}/journey`);
 
   const { data: journey } = await supabase
-    .from("journeys")
+    .from("freeme_journeys")
     .select("path_order")
     .eq("user_id", user.id)
     .order("started_at", { ascending: false })

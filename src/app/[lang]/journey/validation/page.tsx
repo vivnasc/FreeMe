@@ -18,8 +18,8 @@ export default async function ValidationPage({
   if (!user) redirect(`/${lang}/auth/login`);
 
   const { data: journey } = await supabase
-    .from("journeys")
-    .select("*, diagnostics(*)")
+    .from("freeme_journeys")
+    .select("*, freeme_diagnostics(*)")
     .eq("user_id", user.id)
     .order("started_at", { ascending: false })
     .limit(1)
@@ -28,14 +28,14 @@ export default async function ValidationPage({
   if (!journey) redirect(`/${lang}/journey`);
 
   const { data: integrations } = await supabase
-    .from("annotations")
+    .from("freeme_annotations")
     .select("*")
     .eq("user_id", user.id)
     .eq("is_integration", true)
     .order("created_at");
 
   const { data: firstAnnotation } = await supabase
-    .from("annotations")
+    .from("freeme_annotations")
     .select("*")
     .eq("user_id", user.id)
     .order("created_at")
@@ -43,7 +43,7 @@ export default async function ValidationPage({
     .single();
 
   const pathOrder = (journey.path_order || []) as BlockerName[];
-  const diagnostic = journey.diagnostics as {
+  const diagnostic = journey.freeme_diagnostics as {
     blocker_totals: Record<BlockerName, number>;
     active_blockers: BlockerName[];
   } | null;

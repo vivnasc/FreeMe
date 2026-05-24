@@ -168,11 +168,11 @@ function ExerciseTab({
 
     if (existing) {
       await supabase
-        .from("annotations")
+        .from("freeme_annotations")
         .update({ content, updated_at: new Date().toISOString() })
         .eq("id", existing.id);
     } else {
-      await supabase.from("annotations").insert({
+      await supabase.from("freeme_annotations").insert({
         user_id: user.id,
         blocker_name: blocker.name,
         step_index: stepIndex,
@@ -191,13 +191,13 @@ function ExerciseTab({
     if (!user || !journeyId) return;
 
     await supabase
-      .from("blocker_progress")
+      .from("freeme_blocker_progress")
       .update({ completed_at: new Date().toISOString() })
       .eq("journey_id", journeyId)
       .eq("blocker_name", blocker.name);
 
     const { data: journey } = await supabase
-      .from("journeys")
+      .from("freeme_journeys")
       .select("path_order, current_index")
       .eq("id", journeyId)
       .single();
@@ -207,13 +207,13 @@ function ExerciseTab({
       const pathOrder = journey.path_order as string[];
 
       await supabase
-        .from("journeys")
+        .from("freeme_journeys")
         .update({ current_index: nextIndex })
         .eq("id", journeyId);
 
       if (nextIndex < pathOrder.length) {
         await supabase
-          .from("blocker_progress")
+          .from("freeme_blocker_progress")
           .update({ unlocked_at: new Date().toISOString() })
           .eq("journey_id", journeyId)
           .eq("blocker_name", pathOrder[nextIndex]);

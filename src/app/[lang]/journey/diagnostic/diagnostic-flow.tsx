@@ -51,7 +51,7 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
     if (!user) { router.push(`/${lang}/auth/login`); return; }
 
     const { data: diag } = await supabase
-      .from("diagnostics")
+      .from("freeme_diagnostics")
       .insert({
         user_id: user.id,
         responses: selections.map((s, i) => ({
@@ -70,7 +70,7 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
     if (!diag) { setSaving(false); return; }
 
     const { data: journey } = await supabase
-      .from("journeys")
+      .from("freeme_journeys")
       .insert({
         user_id: user.id,
         diagnostic_id: diag.id,
@@ -83,7 +83,7 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
     if (!journey) { setSaving(false); return; }
 
     for (let i = 0; i < result.path.length; i++) {
-      await supabase.from("blocker_progress").insert({
+      await supabase.from("freeme_blocker_progress").insert({
         journey_id: journey.id,
         blocker_name: result.path[i],
         order_in_path: i,

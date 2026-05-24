@@ -20,8 +20,8 @@ export default async function JourneyPage({
   if (!user) redirect(`/${lang}/auth/login`);
 
   const { data: journey } = await supabase
-    .from("journeys")
-    .select("*, blocker_progress(*)")
+    .from("freeme_journeys")
+    .select("*, freeme_blocker_progress(*)")
     .eq("user_id", user.id)
     .order("started_at", { ascending: false })
     .limit(1)
@@ -53,7 +53,7 @@ export default async function JourneyPage({
   }
 
   const pathOrder = (journey.path_order || []) as BlockerName[];
-  const progress = (journey.blocker_progress || []) as {
+  const progress = (journey.freeme_blocker_progress || []) as {
     id: string;
     blocker_name: string;
     order_in_path: number;

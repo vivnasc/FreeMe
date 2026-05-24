@@ -21,14 +21,14 @@ export default async function BlockerPage({
   if (!user) redirect(`/${lang}/auth/login`);
 
   const { data: annotations } = await supabase
-    .from("annotations")
+    .from("freeme_annotations")
     .select("*")
     .eq("user_id", user.id)
     .eq("blocker_name", name)
     .order("step_index");
 
   const { data: journey } = await supabase
-    .from("journeys")
+    .from("freeme_journeys")
     .select("id, path_order, current_index")
     .eq("user_id", user.id)
     .order("started_at", { ascending: false })
