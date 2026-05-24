@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/proxy";
 
 const locales = ["pt", "en"];
 const defaultLocale = "pt";
@@ -12,20 +13,22 @@ function getPreferredLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
-  if (pathnameHasLocale) return;
+  if (!pathnameHasLocale) {
+    const locale = getPreferredLocale(request);
+    request.nextUrl.pathname = `/${locale}${pathname}`;
+    return NextResponse.redirect(request.nextUrl);
+  }
 
-  const locale = getPreferredLocale(request);
-  request.nextUrl.pathname = `/${locale}${pathname}`;
-  return NextResponse.redirect(request.nextUrl);
+  return await updateSession(request);
 }
 
 export const config = {
-  matcher: ["/((?!_next|api|favicon|simbolo|.*\\..*).*)"],
+  matcher: ["/((?!_next|api|simbolo|.*\\..*).*)"],
 };

@@ -34,12 +34,18 @@ export default async function WelcomePage({
         </p>
 
         <div className="flex flex-col gap-4 w-full mt-4">
-          <button className="w-full rounded-full bg-barro px-8 py-4 font-sans text-base font-medium text-creme transition-colors hover:bg-barro-symbol">
+          <Link
+            href={`/${lang}/auth/register`}
+            className="w-full rounded-full bg-barro px-8 py-4 font-sans text-base font-medium text-creme text-center transition-colors hover:bg-barro-symbol"
+          >
             {dict.welcome.start}
-          </button>
-          <button className="w-full rounded-full border border-barro/20 px-8 py-4 font-sans text-base font-medium text-barro transition-colors hover:bg-areia">
+          </Link>
+          <Link
+            href={`/${lang}/auth/login`}
+            className="w-full rounded-full border border-barro/20 px-8 py-4 font-sans text-base font-medium text-barro text-center transition-colors hover:bg-areia"
+          >
             {dict.welcome.login}
-          </button>
+          </Link>
         </div>
 
         <div className="flex items-center gap-4 mt-4">
