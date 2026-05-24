@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreeMe, A Travessia da Mãe</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --barro:#8C4A36; --barro-2:#9A5A43; --terracota:#C87A5B;
+    --areia:#F3E4D6; --areia-2:#EAD6C3; --creme:#FBF4EC;
+    --salvia:#7D8A6A; --salvia-2:#6E7857; --carvao:#2E241D;
+    --serif:'Fraunces',Georgia,serif; --sans:'Outfit',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--areia);color:var(--carvao);font-family:var(--sans);font-weight:300;line-height:1.6}
+  .wrap{max-width:760px;margin:0 auto;padding:0 26px}
+  section{padding:90px 0}
+
+  /* HERO */
+  .hero{background:radial-gradient(130% 90% at 50% 10%, #A85C42, var(--barro) 55%, #5E3527 100%);color:var(--creme);text-align:center;padding:80px 0 90px}
+  .sym{width:96px;height:96px;margin:0 auto 30px;display:block}
+  .hero h1{font-family:var(--serif);font-weight:300;font-size:3.4rem;letter-spacing:0.01em;margin-bottom:6px}
+  .hero h1 b{font-weight:500;font-style:italic}
+  .hero .sub{font-family:var(--serif);font-style:italic;color:#F0C9B0;font-size:1.25rem;margin-bottom:34px}
+  .hero .lead{font-size:1.15rem;font-weight:200;max-width:520px;margin:0 auto 16px;color:var(--creme)}
+  .hero .lead2{font-size:1.05rem;font-weight:200;max-width:520px;margin:0 auto 40px;color:#EAD6C3}
+  .cta{display:inline-block;background:var(--creme);color:var(--barro);text-decoration:none;padding:16px 44px;border-radius:32px;font-size:1.05rem;font-weight:400;letter-spacing:0.03em;transition:transform .3s}
+  .cta:hover{transform:translateY(-2px)}
+  .cta.ghost{background:transparent;border:1px solid rgba(251,244,236,0.5);color:var(--creme)}
+
+  /* FERIDA */
+  .ferida{background:var(--areia)}
+  .ferida h2{font-family:var(--serif);font-weight:300;font-size:2.1rem;line-height:1.3;margin-bottom:26px;color:var(--barro)}
+  .ferida p{font-size:1.12rem;margin-bottom:20px;font-weight:300}
+  .ferida .em{font-family:var(--serif);font-style:italic;font-size:1.35rem;color:var(--barro-2);margin:34px 0;line-height:1.4}
+
+  /* VIRADA */
+  .virada{background:var(--creme)}
+  .virada h2{font-family:var(--serif);font-weight:300;font-size:2rem;color:var(--barro);margin-bottom:24px;line-height:1.3}
+  .virada p{font-size:1.12rem;margin-bottom:18px}
+  .virada strong{color:var(--barro-2);font-weight:500}
+
+  /* BLOQUEIOS */
+  .blocos{background:var(--salvia);color:var(--creme)}
+  .blocos h2{font-family:var(--serif);font-weight:300;font-size:2.1rem;text-align:center;margin-bottom:12px}
+  .blocos .intro{text-align:center;max-width:540px;margin:0 auto 50px;font-weight:200;color:#EDEFE4}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px}
+  .b{background:rgba(251,244,236,0.08);border:1px solid rgba(251,244,236,0.18);border-radius:16px;padding:24px}
+  .b .n{font-family:var(--serif);font-style:italic;color:#D6C9BE;font-size:0.85rem;opacity:0.8;margin-bottom:8px}
+  .b h3{font-family:var(--serif);font-weight:400;font-size:1.3rem;margin-bottom:8px}
+  .b p{font-size:0.95rem;font-weight:200;color:#EDEFE4}
+
+  /* COMO */
+  .como{background:var(--areia)}
+  .como h2{font-family:var(--serif);font-weight:300;font-size:2rem;color:var(--barro);text-align:center;margin-bottom:44px}
+  .passo{display:flex;gap:20px;margin-bottom:30px;align-items:flex-start}
+  .passo .ic{flex-shrink:0;width:46px;height:46px;border-radius:50%;background:var(--barro);color:var(--creme);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-style:italic;font-size:1.1rem}
+  .passo h3{font-family:var(--serif);font-weight:400;font-size:1.2rem;color:var(--barro-2);margin-bottom:4px}
+  .passo p{font-size:1rem;font-weight:300}
+
+  /* SOBRE */
+  .sobre{background:var(--creme);text-align:center}
+  .sobre .sym2{width:60px;height:60px;margin:0 auto 22px;display:block;opacity:0.85}
+  .sobre p{font-size:1.12rem;max-width:560px;margin:0 auto 18px;font-weight:300}
+  .sobre .assina{font-family:var(--serif);font-style:italic;font-size:1.2rem;color:var(--barro-2);margin-top:10px}
+
+  /* SEGURANCA */
+  .seg{background:var(--areia-2);text-align:center}
+  .seg p{font-size:0.98rem;max-width:560px;margin:0 auto;font-weight:300;color:#5C4A3C}
+
+  /* CTA FINAL */
+  .final{background:radial-gradient(130% 90% at 50% 100%, var(--salvia-2), var(--barro) 70%);color:var(--creme);text-align:center}
+  .final h2{font-family:var(--serif);font-weight:300;font-size:2.4rem;margin-bottom:16px;line-height:1.3}
+  .final h2 b{font-style:italic;font-weight:500;color:#F0C9B0}
+  .final p{font-weight:200;max-width:480px;margin:0 auto 36px;color:#EAD6C3}
+
+  footer{background:var(--carvao);color:#9C8E80;text-align:center;padding:36px 0;font-size:0.85rem}
+  footer a{color:#C8A88E;text-decoration:none}
+
+  @media(max-width:600px){.hero h1{font-size:2.6rem}.ferida h2,.final h2{font-size:1.7rem}}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <svg class="sym" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <path d="M256 256 C256 210 220 180 180 180 C130 180 100 220 100 270 C100 340 150 390 220 390 C320 390 380 320 380 220 C380 130 310 70 220 70 C120 70 50 150 50 250 C50 380 150 470 290 470 C345 470 385 455 425 425" fill="none" stroke="#FBF4EC" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>Free<b>Me</b></h1>
+    <div class="sub">A Travessia da Mãe</div>
+    <p class="lead">Toda a gente fala da criança ferida. Ninguém fala da culpa que tu carregas, em silêncio, por achares que falhaste com ele.</p>
+    <p class="lead2">E é essa culpa, que ninguém nomeia, que te impede de educar e de ocupar o teu lugar.</p>
+    <a href="#entrar" class="cta">Começar a travessia</a>
+  </div>
+</section>
+
+<!-- FERIDA -->
+<section class="ferida">
+  <div class="wrap">
+    <h2>Há uma coisa que tu sentes e nunca disseste a ninguém.</h2>
+    <p>Que gritaste quando não devias. Que não deste o suficiente. Que não tiveste o pai dele por perto, ou o dinheiro, ou a paciência. Que não és a mãe que sonhaste ser antes de seres mãe.</p>
+    <p>E carregas isto sozinha, porque a mãe não se pode queixar. A mãe aguenta.</p>
+    <p class="em">Mas a culpa não te torna melhor mãe. Torna-te uma mãe que não educa.</p>
+    <p>Quem se sente em dívida cede para compensar, não põe limites, pede desculpa por existir. E aos poucos abandona o seu lugar. A culpa não é boa conselheira.</p>
+  </div>
+</section>
+
+<!-- VIRADA -->
+<section class="virada">
+  <div class="wrap">
+    <h2>O FreeMe não te vai ensinar a ser mãe.</h2>
+    <p>Não é mais um curso, nem mais uma lista de conselhos que te fazem sentir pior. É uma <strong>travessia</strong>, um percurso que fazes por dentro, no teu ritmo, para pousares o que não era teu para carregar.</p>
+    <p>Assenta no trabalho sistémico, nas ordens do amor entre uma mãe e um filho. Aquilo que herdaste sem escolher, e que molda o que te deixas viver.</p>
+    <p>No fim, não estás curada. Ninguém fica. Mas sabes o caminho de volta a ti. E esse não se desaprende.</p>
+  </div>
+</section>
+
+<!-- BLOQUEIOS -->
+<section class="blocos">
+  <div class="wrap">
+    <h2>Os sete que te prendem</h2>
+    <p class="intro">A culpa é só o primeiro. Por baixo dela, há mais. O FreeMe ajuda-te a ver qual te pesa mais, e a atravessá-lo.</p>
+    <div class="grid">
+      <div class="b"><div class="n">o que carregas</div><h3>O peso</h3><p>Sustentas tudo e todos, e perdeste-te a ti.</p></div>
+      <div class="b"><div class="n">o que te falta</div><h3>O vazio</h3><p>Dás e dás, e já não sobra nada para ti.</p></div>
+      <div class="b"><div class="n">o que te acusa</div><h3>A culpa</h3><p>Sentes que falhaste, e isso paralisa-te.</p></div>
+      <div class="b"><div class="n">o que te aperta</div><h3>O medo</h3><p>Vigias, antecipas, temes repetir o que viveste.</p></div>
+      <div class="b"><div class="n">o que escondes</div><h3>A vergonha</h3><p>Achas que há algo errado em ti, e escondes.</p></div>
+      <div class="b"><div class="n">o que te dói</div><h3>A mágoa</h3><p>As feridas de filha que sangram quando és mãe.</p></div>
+      <div class="b"><div class="n">o que não largas</div><h3>O rancor</h3><p>A raiva de quem te deixou sozinha.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMO -->
+<section class="como">
+  <div class="wrap">
+    <h2>Como é a travessia</h2>
+    <div class="passo"><div class="ic">i</div><div><h3>Um espelho à entrada</h3><p>Respondes a algumas perguntas, e o FreeMe mostra-te qual bloqueio mais te prende agora.</p></div></div>
+    <div class="passo"><div class="ic">ii</div><div><h3>Um percurso só teu</h3><p>Atravessas os bloqueios pela ordem que te protege, com a minha voz a guiar-te em cada um.</p></div></div>
+    <div class="passo"><div class="ic">iii</div><div><h3>A tua voz no papel</h3><p>Em cada etapa, escreves o que sentes. Privado, só teu. É o teu diário da travessia.</p></div></div>
+    <div class="passo"><div class="ic">iv</div><div><h3>O reencontro</h3><p>No fim, vês pelas tuas próprias palavras a distância entre quem entrou e quem chegou.</p></div></div>
+  </div>
+</section>
+
+<!-- SOBRE -->
+<section class="sobre">
+  <div class="wrap">
+    <svg class="sym2" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <path d="M256 256 C256 210 220 180 180 180 C130 180 100 220 100 270 C100 340 150 390 220 390 C320 390 380 320 380 220 C380 130 310 70 220 70 C120 70 50 150 50 250 C50 380 150 470 290 470 C345 470 385 455 425 425" fill="none" stroke="#8C4A36" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <p>Sou a Vivianne. Escritora, mãe de três, e em formação em constelação familiar sistémica, a abordagem que sustenta esta travessia.</p>
+    <p>Criei o FreeMe porque conheço esta culpa por dentro. E porque ninguém merece carregá-la sozinha, no escuro, sem direito a queixa.</p>
+    <p class="assina">Vivianne dos Santos</p>
+  </div>
+</section>
+
+<!-- SEGURANCA -->
+<section class="seg">
+  <div class="wrap">
+    <p>O FreeMe é uma travessia de autoconhecimento, com base nos princípios da constelação familiar. Não substitui acompanhamento terapêutico. Se atravessas uma dor profunda, luto, trauma, ou sentes que precisas de mais, procura o apoio de um profissional. Não tens de o fazer sozinha.</p>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="final" id="entrar">
+  <div class="wrap">
+    <h2>Não vieste tarde.<br><b>Vieste a tempo de ti.</b></h2>
+    <p>A travessia começa quando tu decidires pousar o que não é teu.</p>
+    <a href="#" class="cta">Começar agora</a>
+  </div>
+</section>
+
+<footer>
+  FreeMe, A Travessia da Mãe. Um percurso de Vivianne dos Santos. <br>
+  <a href="https://viviannedossantos.com">viviannedossantos.com</a>
+</footer>
+
+</body>
+</html>
