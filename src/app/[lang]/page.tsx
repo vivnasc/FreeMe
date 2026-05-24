@@ -17,8 +17,18 @@ export default async function LandingPage({
   return (
     <>
       {/* HERO */}
-      <section className="bg-[radial-gradient(130%_90%_at_50%_10%,#A85C42,#8C4A36_55%,#5E3527_100%)] text-creme text-center py-20 px-6">
-        <div className="max-w-[760px] mx-auto">
+      <section className="relative text-creme text-center overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src="/images/vivianne-6.jpeg"
+            alt="Vivianne dos Santos"
+            fill
+            className="object-cover object-top"
+            priority
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(130%_90%_at_50%_10%,#A85C42cc,#8C4A36dd_55%,#5E3527ee_100%)]" />
+        </div>
+        <div className="relative max-w-[760px] mx-auto py-24 px-6">
           <svg
             className="w-24 h-24 mx-auto mb-8"
             viewBox="0 0 512 512"
