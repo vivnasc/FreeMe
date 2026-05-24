@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getDictionary, hasLocale } from "./dictionaries";
 import { SafetyButton } from "@/components/safety-button";
 
@@ -69,6 +70,16 @@ export default async function LandingPage({
       {/* FERIDA */}
       <section className="bg-areia py-[90px] px-6">
         <div className="max-w-[760px] mx-auto">
+          <div className="mb-10 rounded-2xl overflow-hidden">
+            <Image
+              src="/images/EMOCIONAL-pb-foto1.jpeg"
+              alt=""
+              width={760}
+              height={500}
+              className="w-full h-auto object-cover grayscale opacity-80"
+              priority={false}
+            />
+          </div>
           <h2 className="font-serif font-light text-[2.1rem] leading-tight text-barro mb-7">
             {lang === "pt"
               ? "Há uma coisa que tu sentes e nunca disseste a ninguém."
@@ -208,6 +219,15 @@ export default async function LandingPage({
       {/* SOBRE */}
       <section className="bg-creme py-[90px] px-6 text-center">
         <div className="max-w-[760px] mx-auto">
+          <div className="w-40 h-40 mx-auto mb-8 rounded-full overflow-hidden">
+            <Image
+              src="/images/PAGINA-quemsou-foto9.jpeg"
+              alt="Vivianne dos Santos"
+              width={160}
+              height={160}
+              className="w-full h-full object-cover"
+            />
+          </div>
           <svg
             className="w-14 h-14 mx-auto mb-6 opacity-85"
             viewBox="0 0 512 512"
