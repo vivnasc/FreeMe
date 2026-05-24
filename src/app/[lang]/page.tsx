@@ -47,8 +47,11 @@ export default async function LandingPage({
           <h1 className="font-serif font-light text-[3.4rem] leading-tight tracking-tight mb-1">
             Free<span className="font-medium italic">Me</span>
           </h1>
-          <p className="font-serif italic text-[#F0C9B0] text-xl mb-9">
+          <p className="font-serif italic text-[#F0C9B0] text-xl mb-2">
             {lang === "pt" ? "A Travessia da Mãe" : "A Mother's Crossing"}
+          </p>
+          <p className="font-sans text-xs text-creme/50 tracking-widest uppercase mb-9">
+            {lang === "pt" ? "uma app, um percurso, uma travessia" : "an app, a journey, a crossing"}
           </p>
           <p className="text-lg font-extralight max-w-[520px] mx-auto mb-4">
             {lang === "pt"
@@ -65,7 +68,7 @@ export default async function LandingPage({
               href={`/${lang}/auth/register`}
               className="inline-block bg-creme text-barro px-11 py-4 rounded-full text-base font-normal tracking-wide transition-transform hover:-translate-y-0.5"
             >
-              {lang === "pt" ? "Começar a travessia" : "Begin the crossing"}
+              {lang === "pt" ? "Descobrir o meu bloqueio" : "Discover my block"}
             </Link>
             <Link
               href={`/${otherLang}`}
@@ -199,16 +202,16 @@ export default async function LandingPage({
           </h2>
           {(lang === "pt"
             ? [
-                { n: "i", title: "Um espelho à entrada", desc: "Respondes a algumas perguntas, e o FreeMe mostra-te qual bloqueio mais te prende agora." },
-                { n: "ii", title: "Um percurso só teu", desc: "Atravessas os bloqueios pela ordem que te protege, com a minha voz a guiar-te em cada um." },
-                { n: "iii", title: "A tua voz no papel", desc: "Em cada etapa, escreves o que sentes. Privado, só teu. É o teu diário da travessia." },
-                { n: "iv", title: "O reencontro", desc: "No fim, vês pelas tuas próprias palavras a distância entre quem entrou e quem chegou." },
+                { n: "i", title: "Um espelho à entrada (grátis)", desc: "Respondes a 7 perguntas na app, e o FreeMe mostra-te qual bloqueio mais te prende agora. Sem compromisso." },
+                { n: "ii", title: "Um percurso só teu", desc: "Desbloqueias o percurso completo e atravessas os bloqueios pela ordem que te protege, com a minha voz a guiar-te." },
+                { n: "iii", title: "A tua voz no papel", desc: "Em cada etapa, escreves o que sentes na app. Privado, só teu. É o teu diário da travessia." },
+                { n: "iv", title: "O reencontro", desc: "No fim, a app mostra-te, pelas tuas próprias palavras, a distância entre quem entrou e quem chegou." },
               ]
             : [
-                { n: "i", title: "A mirror at the entrance", desc: "You answer a few questions, and FreeMe shows you which block holds you most right now." },
-                { n: "ii", title: "A path only yours", desc: "You cross the blocks in the order that protects you, with my voice guiding you through each one." },
-                { n: "iii", title: "Your voice on paper", desc: "At each step, you write what you feel. Private, only yours. Your crossing journal." },
-                { n: "iv", title: "The reunion", desc: "In the end, you see through your own words the distance between who entered and who arrived." },
+                { n: "i", title: "A mirror at the entrance (free)", desc: "You answer 7 questions in the app, and FreeMe shows you which block holds you most right now. No commitment." },
+                { n: "ii", title: "A path only yours", desc: "You unlock the full journey and cross the blocks in the order that protects you, with my voice guiding you." },
+                { n: "iii", title: "Your voice on paper", desc: "At each step, you write what you feel in the app. Private, only yours. Your crossing journal." },
+                { n: "iv", title: "The reunion", desc: "In the end, the app shows you, through your own words, the distance between who entered and who arrived." },
               ]
           ).map((step) => (
             <div key={step.n} className="flex gap-5 mb-8 items-start">
@@ -289,16 +292,21 @@ export default async function LandingPage({
               <>You did not come late.<br /><span className="italic font-medium text-[#F0C9B0]">You came in time for yourself.</span></>
             )}
           </h2>
-          <p className="font-extralight max-w-[480px] mx-auto mb-9 text-[#EAD6C3]">
+          <p className="font-extralight max-w-[480px] mx-auto mb-4 text-[#EAD6C3]">
             {lang === "pt"
               ? "A travessia começa quando tu decidires pousar o que não é teu."
               : "The crossing begins when you decide to lay down what is not yours."}
+          </p>
+          <p className="font-sans text-sm max-w-[420px] mx-auto mb-9 text-creme/50">
+            {lang === "pt"
+              ? "O diagnóstico é grátis. Vês o teu mapa, decides se queres fazer a travessia."
+              : "The diagnostic is free. See your map, then decide if you want to make the crossing."}
           </p>
           <Link
             href={`/${lang}/auth/register`}
             className="inline-block bg-creme text-barro px-11 py-4 rounded-full text-base font-normal tracking-wide transition-transform hover:-translate-y-0.5"
           >
-            {lang === "pt" ? "Começar agora" : "Begin now"}
+            {lang === "pt" ? "Fazer o diagnóstico grátis" : "Take the free diagnostic"}
           </Link>
         </div>
       </section>

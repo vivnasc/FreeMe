@@ -91,7 +91,7 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
       });
     }
 
-    router.push(`/${lang}/journey`);
+    router.push(`/${lang}/journey/unlock`);
     router.refresh();
   }
 
