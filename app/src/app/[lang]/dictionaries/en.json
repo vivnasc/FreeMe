@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "title": "FreeMe",
+    "subtitle": "A Mother's Crossing",
+    "description": "The 7 emotional blocks of motherhood"
+  },
+  "welcome": {
+    "slogan": "guilt is not a good counsellor",
+    "greeting": "you did not come late, you came in time for yourself.",
+    "start": "begin the crossing",
+    "login": "I already have an account"
+  },
+  "safety": {
+    "helpNow": "I need help now",
+    "disclaimer": "FreeMe does not replace professional therapeutic support.",
+    "crisisTitle": "Support lines",
+    "crisisPT": "SNS 24: 808 24 24 24",
+    "crisisMZ": "Linha da Mulher: 1458",
+    "close": "close"
+  },
+  "nav": {
+    "back": "back",
+    "next": "next",
+    "close": "close"
+  },
+  "language": {
+    "switch": "Português",
+    "current": "EN"
+  }
+}

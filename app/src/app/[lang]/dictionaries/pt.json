@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "title": "FreeMe",
+    "subtitle": "A Travessia da Mãe",
+    "description": "Os 7 bloqueios emocionais da maternidade"
+  },
+  "welcome": {
+    "slogan": "a culpa não é boa conselheira",
+    "greeting": "não vieste tarde, vieste a tempo de ti.",
+    "start": "começar a travessia",
+    "login": "já tenho conta"
+  },
+  "safety": {
+    "helpNow": "preciso de ajuda agora",
+    "disclaimer": "O FreeMe não substitui acompanhamento terapêutico.",
+    "crisisTitle": "Linhas de apoio",
+    "crisisPT": "SNS 24: 808 24 24 24",
+    "crisisMZ": "Linha da Mulher: 1458",
+    "close": "fechar"
+  },
+  "nav": {
+    "back": "voltar",
+    "next": "seguinte",
+    "close": "fechar"
+  },
+  "language": {
+    "switch": "English",
+    "current": "PT"
+  }
+}
