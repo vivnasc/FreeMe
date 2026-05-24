@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
 const FREEME_PRICE = process.env.NEXT_PUBLIC_FREEME_PRICE || "29.00";
-const FREEME_CURRENCY = process.env.NEXT_PUBLIC_FREEME_CURRENCY || "EUR";
+const FREEME_CURRENCY = process.env.NEXT_PUBLIC_FREEME_CURRENCY || "USD";
 
 export function PayPalCheckout({ lang }: { lang: string }) {
   const router = useRouter();
