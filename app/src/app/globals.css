@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-barro: #8C4A36;
+  --color-barro-symbol: #9A5A43;
+  --color-terracota: #C87A5B;
+  --color-areia: #F3E4D6;
+  --color-salvia: #7D8A6A;
+  --color-creme: #FBF4EC;
+  --color-creme-symbol: #F1E8DD;
+  --color-carvao: #2E241D;
+
+  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-outfit);
+}
+
+body {
+  background: var(--color-creme);
+  color: var(--color-carvao);
+}
