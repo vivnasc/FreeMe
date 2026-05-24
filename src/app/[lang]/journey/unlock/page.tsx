@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BLOCKER_LABELS } from "@/lib/path";
 import { type BlockerName } from "@/lib/types";
 import Link from "next/link";
+import { PayPalCheckout } from "./paypal-checkout";
 
 export default async function UnlockPage({
   params,
@@ -19,6 +20,14 @@ export default async function UnlockPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/${lang}/auth/login`);
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, paid")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.paid) redirect(`/${lang}/journey`);
+
   const { data: journey } = await supabase
     .from("journeys")
     .select("path_order")
@@ -30,13 +39,6 @@ export default async function UnlockPage({
   if (!journey) redirect(`/${lang}/journey`);
 
   const pathOrder = (journey.path_order || []) as BlockerName[];
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
-
   const displayName = profile?.display_name || user.email?.split("@")[0];
 
   return (
@@ -73,34 +75,20 @@ export default async function UnlockPage({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <p className="font-sans text-sm text-carvao/50">
-            {lang === "pt"
-              ? "Áudios guiados, exercícios de escrita, anotações privadas, e a validação final."
-              : "Guided audio, writing exercises, private annotations, and the final validation."}
-          </p>
-        </div>
+        <p className="font-sans text-sm text-carvao/50">
+          {lang === "pt"
+            ? "Áudios guiados, exercícios de escrita, anotações privadas, e a validação final."
+            : "Guided audio, writing exercises, private annotations, and the final validation."}
+        </p>
 
         <div className="rounded-2xl border border-barro/20 bg-creme p-6 flex flex-col gap-4">
-          <p className="font-serif text-3xl text-barro font-semibold">
-            {lang === "pt" ? "€ --" : "€ --"}
-          </p>
           <p className="font-sans text-sm text-carvao/60">
             {lang === "pt"
               ? "Pagamento único. Acesso vitalício ao percurso completo."
               : "One-time payment. Lifetime access to the full journey."}
           </p>
-          <button
-            disabled
-            className="w-full rounded-full bg-barro/30 px-8 py-4 font-sans text-base font-medium text-creme cursor-not-allowed"
-          >
-            {lang === "pt" ? "Pagamento em breve" : "Payment coming soon"}
-          </button>
-          <p className="font-sans text-xs text-carvao/30">
-            {lang === "pt"
-              ? "Stripe (cartão, MB Way, e mais)"
-              : "Stripe (card and more)"}
-          </p>
+
+          <PayPalCheckout lang={lang} />
         </div>
 
         <Link

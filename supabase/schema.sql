@@ -6,6 +6,9 @@ create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
   locale text not null default 'pt' check (locale in ('pt', 'en')),
+  paid boolean not null default false,
+  paid_at timestamptz,
+  paypal_order_id text,
   created_at timestamptz not null default now()
 );
 
