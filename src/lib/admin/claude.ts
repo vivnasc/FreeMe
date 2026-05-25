@@ -1,7 +1,7 @@
 import { FREEME_BRAND } from "./brand";
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+const ANTHROPIC_API_KEY = process.env.FREEME_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || "";
+const ANTHROPIC_MODEL = process.env.FREEME_ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
 const CAROUSEL_SCHEMA = {
   name: "save_carousel",
