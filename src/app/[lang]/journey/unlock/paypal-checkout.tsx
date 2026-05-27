@@ -3,7 +3,6 @@
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
 const FREEME_PRICE = process.env.NEXT_PUBLIC_FREEME_PRICE || "29.00";
@@ -36,15 +35,6 @@ export function PayPalCheckout({ lang }: { lang: string }) {
     });
 
     if (res.ok) {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("freeme_profiles")
-          .update({ paid: true })
-          .eq("id", user.id);
-      }
-
       setStatus("success");
       router.push(`/${lang}/journey`);
       router.refresh();
