@@ -137,7 +137,7 @@ function ReadingTab({ text }: { text: string }) {
 function ExerciseTab({
   lang,
   blocker,
-  savedAnnotations,
+  savedAnnotations: initialAnnotations,
   journeyId,
 }: {
   lang: string;
@@ -147,9 +147,10 @@ function ExerciseTab({
 }) {
   const l = lang as "pt" | "en";
   const router = useRouter();
+  const [annotations, setAnnotations] = useState<Annotation[]>(initialAnnotations);
   const [texts, setTexts] = useState<Record<number, string>>(() => {
     const init: Record<number, string> = {};
-    for (const ann of savedAnnotations) {
+    for (const ann of initialAnnotations) {
       init[ann.step_index] = ann.content;
     }
     return init;
@@ -163,7 +164,7 @@ function ExerciseTab({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const existing = savedAnnotations.find((a) => a.step_index === stepIndex);
+    const existing = annotations.find((a) => a.step_index === stepIndex);
     const content = texts[stepIndex] || "";
 
     if (existing) {
@@ -171,14 +172,24 @@ function ExerciseTab({
         .from("freeme_annotations")
         .update({ content, updated_at: new Date().toISOString() })
         .eq("id", existing.id);
+      setAnnotations((prev) =>
+        prev.map((a) => (a.id === existing.id ? { ...a, content } : a))
+      );
     } else {
-      await supabase.from("freeme_annotations").insert({
-        user_id: user.id,
-        blocker_name: blocker.name,
-        step_index: stepIndex,
-        is_integration: isIntegration,
-        content,
-      });
+      const { data: inserted } = await supabase
+        .from("freeme_annotations")
+        .insert({
+          user_id: user.id,
+          blocker_name: blocker.name,
+          step_index: stepIndex,
+          is_integration: isIntegration,
+          content,
+        })
+        .select()
+        .single();
+      if (inserted) {
+        setAnnotations((prev) => [...prev, inserted as Annotation]);
+      }
     }
 
     setSaving(null);
