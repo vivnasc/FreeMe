@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import { Fraunces } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, getDictionary, locales } from "./dictionaries";
 import "../globals.css";
@@ -7,12 +7,6 @@ import "../globals.css";
 const fraunces = Fraunces({
   subsets: ["latin", "latin-ext"],
   variable: "--font-fraunces",
-  display: "swap",
-});
-
-const outfit = Outfit({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-outfit",
   display: "swap",
 });
 
@@ -49,13 +43,8 @@ export default async function LangLayout({
   if (!hasLocale(lang)) notFound();
 
   return (
-    <html
-      lang={lang}
-      className={`${fraunces.variable} ${outfit.variable} h-full`}
-    >
-      <body className="min-h-full flex flex-col font-sans antialiased bg-creme text-carvao">
-        {children}
-      </body>
-    </html>
+    <div className={`${fraunces.variable} min-h-full flex flex-col font-sans bg-creme text-carvao`}>
+      {children}
+    </div>
   );
 }

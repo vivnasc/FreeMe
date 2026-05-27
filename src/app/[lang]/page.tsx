@@ -317,9 +317,13 @@ export default async function LandingPage({
           FreeMe, {lang === "pt" ? "A Travessia da Mãe" : "A Mother's Crossing"}.{" "}
           {lang === "pt" ? "Um percurso de" : "A journey by"} Vivianne dos Santos.
         </p>
-        <p className="mt-3">
+        <p className="mt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a href="mailto:ola@viviannedossantos.com" className="text-[#C8A88E] hover:text-areia transition-colors">
             ola@viviannedossantos.com
+          </a>
+          <span className="hidden sm:inline text-[#5C4A3C]">|</span>
+          <a href="https://wa.me/258845243875" className="text-[#C8A88E] hover:text-areia transition-colors">
+            WhatsApp +258 84 524 3875
           </a>
         </p>
       </footer>
