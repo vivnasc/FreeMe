@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { createHmac } from "crypto";
 
-const ADMIN_EMAILS = (process.env.FREEME_ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
-const ADMIN_PASSWORD = process.env.FREEME_ADMIN_PASSWORD || "";
-const SECRET = process.env.FREEME_ADMIN_PASSWORD || "freeme-admin-fallback";
+const ADMIN_EMAILS = (process.env.FREEME_ADMIN_EMAILS || process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+const ADMIN_PASSWORD = process.env.FREEME_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "";
+const SECRET = process.env.FREEME_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "freeme-admin-fallback";
 const COOKIE_NAME = "freeme_admin";
 
 function sign(email: string): string {
