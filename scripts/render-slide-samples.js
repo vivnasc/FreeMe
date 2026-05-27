@@ -37,7 +37,7 @@ function buildHTML(slide) {
     "capa-photo": {
       bg: `linear-gradient(180deg, rgba(140,74,54,0.15) 0%, rgba(94,53,39,0.85) 50%, rgba(46,36,29,0.95) 100%)`,
       text: '#FBF4EC',
-      accent: '#F0C9B0',
+      accent: '#EBAE4A',
       fontSize: '72px',
       fontWeight: '400',
       fontFamily: "'Outfit', sans-serif",
@@ -49,7 +49,7 @@ function buildHTML(slide) {
     "split-top": {
       bg: '#2E241D',
       text: '#FBF4EC',
-      accent: '#C87A5B',
+      accent: '#EBAE4A',
       fontSize: '66px',
       fontWeight: '300',
       fontFamily: "'Outfit', sans-serif",
