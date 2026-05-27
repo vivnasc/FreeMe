@@ -2,155 +2,246 @@
 
 import { useState } from "react";
 import { CONTENT_30_DAYS, type ContentPost } from "@/content/social-30-days";
-import { MJ_PROMPTS } from "@/content/mj-prompts";
+import { MJ_PROMPTS, FREEME_STYLE_BASE } from "@/content/mj-prompts";
 
 export function AdminDashboard() {
   const [selected, setSelected] = useState<ContentPost | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [tab, setTab] = useState<"slides" | "copy" | "imagem">("slides");
 
   function copy(text: string, field: string) {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 1500);
+    setTimeout(() => setCopiedField(null), 2000);
   }
 
-  function exportCSV() {
-    const header = "Day,Type,Category,Title,Caption,Hashtags";
-    const rows = CONTENT_30_DAYS.map((p) =>
-      [p.day, p.type, p.categoria, `"${p.title}"`, `"${p.caption.replace(/"/g, '""')}"`, `"${p.hashtags}"`].join(",")
-    );
+  function igCaption(post: ContentPost): string {
+    return `${post.caption}\n\n.\n.\n.\n${post.hashtags}`;
+  }
+
+  function tiktokCaption(post: ContentPost): string {
+    const short = post.caption.split("\n")[0];
+    const tags = post.hashtags.split(" ").slice(0, 5).join(" ");
+    return `${short}\n\n${tags} #fyp #paraamães`;
+  }
+
+  function downloadCaption(text: string, filename: string) {
+    const blob = new Blob([text], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  }
+
+  function exportAllCSV() {
+    const header = "Day,Type,Category,Title,IG Caption,TikTok Caption,Hashtags,MJ Prompt";
+    const rows = CONTENT_30_DAYS.map((p) => {
+      const mj = MJ_PROMPTS[p.day]?.[0]?.prompt || "";
+      return [
+        p.day,
+        p.type,
+        p.categoria,
+        `"${p.title}"`,
+        `"${igCaption(p).replace(/"/g, '""')}"`,
+        `"${tiktokCaption(p).replace(/"/g, '""')}"`,
+        `"${p.hashtags}"`,
+        `"${mj}"`,
+      ].join(",");
+    });
     const csv = [header, ...rows].join("\r\n") + "\r\n";
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "freeme-30-dias.csv";
+    a.download = "freeme-30-dias-completo.csv";
     a.click();
   }
 
+  // === DETAIL VIEW ===
   if (selected) {
     const mjPrompts = MJ_PROMPTS[selected.day] || [];
 
     return (
-      <div className="max-w-4xl mx-auto px-6 py-10">
-        <button
-          onClick={() => setSelected(null)}
-          className="text-sm text-creme/50 hover:text-creme mb-6"
-        >
-          ← Voltar ao calendário
+      <div className="max-w-5xl mx-auto px-6 py-10">
+        <button onClick={() => setSelected(null)} className="text-sm text-creme/50 hover:text-creme mb-6">
+          ← Calendário
         </button>
 
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-3xl font-semibold text-terracota">Dia {selected.day}</span>
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
             selected.type === "carousel" ? "bg-terracota/20 text-terracota" : "bg-salvia/20 text-salvia"
           }`}>
             {selected.type === "carousel" ? "Carrossel" : "Vídeo"}
           </span>
-          <span className="text-xs text-creme/40">{selected.categoria}</span>
+          <span className="text-xs text-creme/30">{selected.categoria}</span>
+        </div>
+        <h1 className="text-lg text-creme/80 mb-6">{selected.title}</h1>
+
+        {/* TABS */}
+        <div className="flex gap-1 bg-creme/5 rounded-xl p-1 mb-8">
+          {(["slides", "copy", "imagem"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 rounded-lg py-2.5 text-sm transition-all ${
+                tab === t ? "bg-creme/10 text-creme font-medium" : "text-creme/40 hover:text-creme/60"
+              }`}
+            >
+              {t === "slides" ? "Slides" : t === "copy" ? "Copy" : "Imagem MJ"}
+            </button>
+          ))}
         </div>
 
-        <h1 className="font-sans text-2xl text-terracota mb-8">
-          Dia {selected.day}: {selected.title}
-        </h1>
-
-        {/* SLIDES / CENAS */}
-        <div className="mb-8">
-          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
-            {selected.type === "carousel" ? "Slides" : "Cenas"}
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {/* TAB: SLIDES */}
+        {tab === "slides" && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {selected.slides.map((slide, i) => {
-              const colors: Record<string, { bg: string; text: string }> = {
-                capa: { bg: "bg-barro", text: "text-creme" },
-                conteudo: { bg: "bg-creme", text: "text-carvao" },
-                citacao: { bg: "bg-areia", text: "text-barro" },
-                cta: { bg: "bg-salvia", text: "text-creme" },
-                assinatura: { bg: "bg-carvao border border-creme/20", text: "text-creme" },
-                "kinetic-line": { bg: "bg-carvao border border-creme/10", text: "text-creme" },
+              const palettes: Record<string, { bg: string; text: string; border: string }> = {
+                capa: { bg: "#8C4A36", text: "#FBF4EC", border: "#C87A5B" },
+                conteudo: { bg: "#FBF4EC", text: "#2E241D", border: "#F3E4D6" },
+                citacao: { bg: "#F3E4D6", text: "#8C4A36", border: "#C87A5B" },
+                cta: { bg: "#7D8A6A", text: "#FBF4EC", border: "#6E7857" },
+                assinatura: { bg: "#2E241D", text: "#FBF4EC", border: "#C87A5B" },
+                "kinetic-line": { bg: "#2E241D", text: "#FBF4EC", border: "#3E342D" },
               };
-              const c = colors[slide.layout] || colors.conteudo;
+              const p = palettes[slide.layout] || palettes.conteudo;
 
               return (
                 <div
                   key={i}
-                  className={`${c.bg} ${c.text} rounded-xl p-4 aspect-[4/5] flex flex-col justify-center cursor-pointer hover:opacity-90 transition-opacity`}
+                  className="rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform"
+                  style={{
+                    backgroundColor: p.bg,
+                    color: p.text,
+                    border: `1px solid ${p.border}`,
+                    aspectRatio: selected.type === "carousel" ? "4/5" : "9/16",
+                  }}
                   onClick={() => copy(slide.body, `slide-${i}`)}
                 >
-                  <p className="text-[10px] uppercase tracking-wide opacity-50 mb-2">
-                    {slide.layout} {copiedField === `slide-${i}` ? "· copiado" : ""}
-                  </p>
-                  <p className="text-xs leading-relaxed whitespace-pre-line">
-                    {slide.body}
-                  </p>
+                  <div className="h-full flex flex-col justify-center p-5">
+                    <p className="text-[9px] uppercase tracking-widest opacity-40 mb-2">{slide.layout}</p>
+                    {slide.layout === "capa" && (
+                      <>
+                        <p className="text-sm font-serif leading-snug whitespace-pre-line">{slide.body}</p>
+                        <p className="text-[10px] italic opacity-50 mt-3">FreeMe</p>
+                      </>
+                    )}
+                    {(slide.layout === "conteudo" || slide.layout === "kinetic-line") && (
+                      <p className="text-xs leading-relaxed whitespace-pre-line">{slide.body}</p>
+                    )}
+                    {slide.layout === "citacao" && (
+                      <p className="text-xs italic leading-relaxed">&ldquo;{slide.body}&rdquo;</p>
+                    )}
+                    {slide.layout === "cta" && (
+                      <>
+                        <p className="text-xs leading-relaxed mb-3 whitespace-pre-line">{slide.body}</p>
+                        <div className="bg-white/20 rounded-full px-3 py-1.5 self-center">
+                          <p className="text-[8px]">freeme.viviannedossantos.com</p>
+                        </div>
+                      </>
+                    )}
+                    {slide.layout === "assinatura" && (
+                      <div className="text-center">
+                        <p className="text-xs italic opacity-60">Vivianne dos Santos</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        )}
 
-        {/* IMAGEM - UPLOAD / MJ PROMPT */}
-        <div className="mb-8">
-          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
-            Imagem (Midjourney)
-          </h2>
-          {mjPrompts.map((mj, i) => (
-            <div key={i} className="mb-4">
-              <div
-                className="rounded-xl border border-dashed border-creme/20 p-4 cursor-pointer hover:border-creme/40 transition-colors"
-                onClick={() => copy(mj.prompt, `mj-${i}`)}
-              >
-                <p className="text-xs text-creme/40 mb-1">
-                  Clica para copiar o prompt {copiedField === `mj-${i}` ? "· copiado!" : ""}
-                </p>
-                <p className="text-sm text-creme/80 font-mono">{mj.prompt}</p>
+        {/* TAB: COPY */}
+        {tab === "copy" && (
+          <div className="flex flex-col gap-6">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs text-creme/40 uppercase tracking-wide">Instagram</h3>
+                <div className="flex gap-2">
+                  <button onClick={() => copy(igCaption(selected), "ig")} className="text-xs text-terracota hover:text-terracota/80">
+                    {copiedField === "ig" ? "Copiado!" : "Copiar"}
+                  </button>
+                  <button onClick={() => downloadCaption(igCaption(selected), `dia-${selected.day}-instagram.txt`)} className="text-xs text-creme/30 hover:text-creme/50">
+                    Download
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl bg-creme/5 p-5">
+                <p className="text-sm text-creme/80 whitespace-pre-line">{igCaption(selected)}</p>
               </div>
             </div>
-          ))}
 
-          <div className="mt-4 rounded-xl border-2 border-dashed border-creme/15 p-8 text-center hover:border-creme/30 transition-colors">
-            <p className="text-sm text-creme/30">
-              Arrasta a imagem gerada para aqui (em breve)
-            </p>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs text-creme/40 uppercase tracking-wide">TikTok</h3>
+                <div className="flex gap-2">
+                  <button onClick={() => copy(tiktokCaption(selected), "tt")} className="text-xs text-terracota hover:text-terracota/80">
+                    {copiedField === "tt" ? "Copiado!" : "Copiar"}
+                  </button>
+                  <button onClick={() => downloadCaption(tiktokCaption(selected), `dia-${selected.day}-tiktok.txt`)} className="text-xs text-creme/30 hover:text-creme/50">
+                    Download
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl bg-creme/5 p-5">
+                <p className="text-sm text-creme/80 whitespace-pre-line">{tiktokCaption(selected)}</p>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs text-creme/40 uppercase tracking-wide">Hashtags</h3>
+                <button onClick={() => copy(selected.hashtags, "hash")} className="text-xs text-terracota hover:text-terracota/80">
+                  {copiedField === "hash" ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+              <div className="rounded-xl bg-creme/5 p-4">
+                <p className="text-sm text-terracota/70">{selected.hashtags}</p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* CAPTION */}
-        <div className="mb-8">
-          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
-            Caption
-          </h2>
-          <div
-            className="rounded-xl bg-creme/5 p-5 cursor-pointer hover:bg-creme/10 transition-colors"
-            onClick={() => copy(selected.caption, "caption")}
-          >
-            <p className="text-sm text-creme/80 whitespace-pre-line">
-              {selected.caption}
-            </p>
-            <p className="text-xs text-creme/30 mt-3">
-              {copiedField === "caption" ? "Copiado!" : "Clica para copiar"}
-            </p>
+        {/* TAB: IMAGEM MJ */}
+        {tab === "imagem" && (
+          <div className="flex flex-col gap-6">
+            <div>
+              <h3 className="text-xs text-creme/40 uppercase tracking-wide mb-2">Estilo base FreeMe (incluir em todos os prompts)</h3>
+              <div
+                className="rounded-xl bg-creme/5 p-4 cursor-pointer hover:bg-creme/10 transition-colors"
+                onClick={() => copy(FREEME_STYLE_BASE, "style")}
+              >
+                <p className="text-xs text-creme/60 font-mono leading-relaxed">{FREEME_STYLE_BASE}</p>
+                <p className="text-[10px] text-creme/30 mt-2">{copiedField === "style" ? "Copiado!" : "Clica para copiar"}</p>
+              </div>
+            </div>
+
+            {mjPrompts.map((mj, i) => (
+              <div key={i}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs text-creme/40 uppercase tracking-wide">Prompt dia {selected.day}</h3>
+                  <button onClick={() => copy(mj.prompt, `mj-${i}`)} className="text-xs text-terracota hover:text-terracota/80">
+                    {copiedField === `mj-${i}` ? "Copiado!" : "Copiar"}
+                  </button>
+                </div>
+                <div className="rounded-xl bg-creme/5 p-4">
+                  <p className="text-sm text-creme/80 font-mono leading-relaxed">{mj.prompt}</p>
+                </div>
+              </div>
+            ))}
+
+            <div className="rounded-2xl border-2 border-dashed border-creme/15 p-10 text-center hover:border-creme/30 transition-colors">
+              <p className="text-sm text-creme/30 mb-2">Arrasta a imagem MJ gerada para aqui</p>
+              <p className="text-[10px] text-creme/20">(upload para Supabase Storage em breve)</p>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* HASHTAGS */}
-        <div className="mb-8">
-          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
-            Hashtags
-          </h2>
-          <div
-            className="rounded-xl bg-creme/5 p-4 cursor-pointer hover:bg-creme/10 transition-colors"
-            onClick={() => copy(selected.hashtags, "hashtags")}
-          >
-            <p className="text-sm text-terracota/80">{selected.hashtags}</p>
-            <p className="text-xs text-creme/30 mt-2">
-              {copiedField === "hashtags" ? "Copiado!" : "Clica para copiar"}
-            </p>
-          </div>
-        </div>
-
-        {/* PLATAFORMAS */}
-        <div className="flex gap-2">
+        {/* PLATFORM BADGES */}
+        <div className="flex gap-2 mt-8 pt-6 border-t border-creme/10">
           {selected.platforms.map((p) => (
-            <span key={p} className="px-3 py-1 rounded-full bg-creme/10 text-xs text-creme/60">
+            <span key={p} className="px-3 py-1 rounded-full bg-creme/10 text-xs text-creme/50">
               {p === "ig" ? "Instagram" : "TikTok"}
             </span>
           ))}
@@ -159,48 +250,67 @@ export function AdminDashboard() {
     );
   }
 
+  // === CALENDAR VIEW ===
+  const weeks = [
+    { label: "Semana 1: Identificação", days: CONTENT_30_DAYS.filter((p) => p.day <= 7) },
+    { label: "Semana 2: Educação (7 bloqueios)", days: CONTENT_30_DAYS.filter((p) => p.day > 7 && p.day <= 14) },
+    { label: "Semana 3: Transformação + Autoridade", days: CONTENT_30_DAYS.filter((p) => p.day > 14 && p.day <= 21) },
+    { label: "Semana 4: Conversão", days: CONTENT_30_DAYS.filter((p) => p.day > 21) },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
+    <div className="max-w-5xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-10">
-        <h1 className="font-sans text-2xl font-semibold text-terracota">
-          FreeMe Admin
-        </h1>
-        <button
-          onClick={exportCSV}
-          className="rounded-full bg-salvia px-5 py-2 text-sm text-creme hover:bg-salvia/80"
-        >
-          Export CSV
+        <div>
+          <h1 className="text-2xl font-semibold text-terracota">FreeMe Admin</h1>
+          <p className="text-sm text-creme/40 mt-1">30 dias de conteúdo para IG e TikTok</p>
+        </div>
+        <button onClick={exportAllCSV} className="rounded-full bg-salvia px-5 py-2 text-sm text-creme hover:bg-salvia/80">
+          Export CSV completo
         </button>
       </div>
 
-      <p className="text-sm text-creme/50 mb-6">
-        30 dias de conteúdo. Clica num post para ver slides, caption, hashtags, e prompt Midjourney.
-      </p>
+      {weeks.map((week) => (
+        <div key={week.label} className="mb-8">
+          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">{week.label}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {week.days.map((post) => {
+              const firstSlide = post.slides[0];
+              const isCarousel = post.type === "carousel";
+              const bgColor = firstSlide.layout === "capa" ? "#8C4A36" : "#2E241D";
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {CONTENT_30_DAYS.map((post) => (
-          <button
-            key={post.day}
-            onClick={() => setSelected(post)}
-            className="flex items-center gap-4 rounded-xl border border-creme/10 px-5 py-4 text-left hover:border-creme/25 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-full bg-barro/20 flex items-center justify-center font-sans text-sm text-terracota font-medium shrink-0">
-              {post.day}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-creme truncate">{post.title}</p>
-              <div className="flex gap-2 mt-1">
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                  post.type === "carousel" ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
-                }`}>
-                  {post.type === "carousel" ? "C" : "V"}
-                </span>
-                <span className="text-[10px] text-creme/30">{post.categoria}</span>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
+              return (
+                <button
+                  key={post.day}
+                  onClick={() => { setSelected(post); setTab("slides"); }}
+                  className="text-left rounded-2xl overflow-hidden border border-creme/10 hover:border-creme/25 transition-all group"
+                >
+                  {/* Mini preview */}
+                  <div
+                    className="h-24 flex items-center justify-center px-4"
+                    style={{ backgroundColor: bgColor }}
+                  >
+                    <p className="text-[10px] text-creme/80 leading-relaxed text-center line-clamp-3 font-serif">
+                      {firstSlide.body.slice(0, 80)}...
+                    </p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-terracota font-medium">Dia {post.day}</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded ${
+                        isCarousel ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
+                      }`}>
+                        {isCarousel ? "C" : "V"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-creme/70 mt-1 truncate">{post.title}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

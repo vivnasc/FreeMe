@@ -1,3 +1,5 @@
+export const FREEME_STYLE_BASE = `editorial portrait photograph, warm maternal atmosphere, fixed palette: deep terracotta #8C4A36, soft cream #FBF4EC, warm sand #F3E4D6, sage green #7D8A6A, charcoal #2E241D; allowed materials: raw linen, warm wool, terracotta ceramics, dried flowers, natural wood; soft oblique golden hour light, gentle chiaroscuro, shallow depth of field; no text, no logos, no watermarks; 8k`;
+
 export interface MJPrompt {
   prompt: string;
   style: string;
