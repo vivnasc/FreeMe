@@ -1,61 +1,162 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FREEME_BRAND } from "@/lib/admin/brand";
-
-interface ContentItem {
-  id: string;
-  code: string;
-  type: string;
-  categoria: string;
-  title: string;
-  status: string;
-  caption: string;
-  created_at: string;
-  freeme_content_slides: { idx: number; layout: string; body: string }[];
-}
+import { useState } from "react";
+import { CONTENT_30_DAYS, type ContentPost } from "@/content/social-30-days";
+import { MJ_PROMPTS } from "@/content/mj-prompts";
 
 export function AdminDashboard() {
-  const [items, setItems] = useState<ContentItem[]>([]);
-  const [generating, setGenerating] = useState(false);
-  const [type, setType] = useState<"carousel" | "video">("carousel");
-  const [categoria, setCategoria] = useState("ferida");
-  const [brief, setBrief] = useState("");
-  const [result, setResult] = useState<ContentItem | null>(null);
+  const [selected, setSelected] = useState<ContentPost | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/admin/content").then((r) => r.json()).then(setItems);
-  }, [result]);
-
-  async function generate() {
-    setGenerating(true);
-    setResult(null);
-    const res = await fetch("/api/admin/content", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, brief, categoria }),
-    });
-    const data = await res.json();
-    setResult(data);
-    setGenerating(false);
+  function copy(text: string, field: string) {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1500);
   }
 
-  async function exportMetricool() {
-    const readyIds = items.filter((i) => i.status === "rendered" || i.status === "ready").map((i) => i.id);
-    if (readyIds.length === 0) return;
-
-    const res = await fetch("/api/admin/metricool", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemIds: readyIds }),
-    });
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+  function exportCSV() {
+    const header = "Day,Type,Category,Title,Caption,Hashtags";
+    const rows = CONTENT_30_DAYS.map((p) =>
+      [p.day, p.type, p.categoria, `"${p.title}"`, `"${p.caption.replace(/"/g, '""')}"`, `"${p.hashtags}"`].join(",")
+    );
+    const csv = [header, ...rows].join("\r\n") + "\r\n";
+    const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `freeme-metricool-${new Date().toISOString().split("T")[0]}.csv`;
+    a.href = URL.createObjectURL(blob);
+    a.download = "freeme-30-dias.csv";
     a.click();
+  }
+
+  if (selected) {
+    const mjPrompts = MJ_PROMPTS[selected.day] || [];
+
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        <button
+          onClick={() => setSelected(null)}
+          className="text-sm text-creme/50 hover:text-creme mb-6"
+        >
+          ← Voltar ao calendário
+        </button>
+
+        <div className="flex items-center gap-3 mb-8">
+          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+            selected.type === "carousel" ? "bg-terracota/20 text-terracota" : "bg-salvia/20 text-salvia"
+          }`}>
+            {selected.type === "carousel" ? "Carrossel" : "Vídeo"}
+          </span>
+          <span className="text-xs text-creme/40">{selected.categoria}</span>
+        </div>
+
+        <h1 className="font-sans text-2xl text-terracota mb-8">
+          Dia {selected.day}: {selected.title}
+        </h1>
+
+        {/* SLIDES / CENAS */}
+        <div className="mb-8">
+          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
+            {selected.type === "carousel" ? "Slides" : "Cenas"}
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {selected.slides.map((slide, i) => {
+              const colors: Record<string, { bg: string; text: string }> = {
+                capa: { bg: "bg-barro", text: "text-creme" },
+                conteudo: { bg: "bg-creme", text: "text-carvao" },
+                citacao: { bg: "bg-areia", text: "text-barro" },
+                cta: { bg: "bg-salvia", text: "text-creme" },
+                assinatura: { bg: "bg-carvao border border-creme/20", text: "text-creme" },
+                "kinetic-line": { bg: "bg-carvao border border-creme/10", text: "text-creme" },
+              };
+              const c = colors[slide.layout] || colors.conteudo;
+
+              return (
+                <div
+                  key={i}
+                  className={`${c.bg} ${c.text} rounded-xl p-4 aspect-[4/5] flex flex-col justify-center cursor-pointer hover:opacity-90 transition-opacity`}
+                  onClick={() => copy(slide.body, `slide-${i}`)}
+                >
+                  <p className="text-[10px] uppercase tracking-wide opacity-50 mb-2">
+                    {slide.layout} {copiedField === `slide-${i}` ? "· copiado" : ""}
+                  </p>
+                  <p className="text-xs leading-relaxed whitespace-pre-line">
+                    {slide.body}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* IMAGEM - UPLOAD / MJ PROMPT */}
+        <div className="mb-8">
+          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
+            Imagem (Midjourney)
+          </h2>
+          {mjPrompts.map((mj, i) => (
+            <div key={i} className="mb-4">
+              <div
+                className="rounded-xl border border-dashed border-creme/20 p-4 cursor-pointer hover:border-creme/40 transition-colors"
+                onClick={() => copy(mj.prompt, `mj-${i}`)}
+              >
+                <p className="text-xs text-creme/40 mb-1">
+                  Clica para copiar o prompt {copiedField === `mj-${i}` ? "· copiado!" : ""}
+                </p>
+                <p className="text-sm text-creme/80 font-mono">{mj.prompt}</p>
+              </div>
+            </div>
+          ))}
+
+          <div className="mt-4 rounded-xl border-2 border-dashed border-creme/15 p-8 text-center hover:border-creme/30 transition-colors">
+            <p className="text-sm text-creme/30">
+              Arrasta a imagem gerada para aqui (em breve)
+            </p>
+          </div>
+        </div>
+
+        {/* CAPTION */}
+        <div className="mb-8">
+          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
+            Caption
+          </h2>
+          <div
+            className="rounded-xl bg-creme/5 p-5 cursor-pointer hover:bg-creme/10 transition-colors"
+            onClick={() => copy(selected.caption, "caption")}
+          >
+            <p className="text-sm text-creme/80 whitespace-pre-line">
+              {selected.caption}
+            </p>
+            <p className="text-xs text-creme/30 mt-3">
+              {copiedField === "caption" ? "Copiado!" : "Clica para copiar"}
+            </p>
+          </div>
+        </div>
+
+        {/* HASHTAGS */}
+        <div className="mb-8">
+          <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">
+            Hashtags
+          </h2>
+          <div
+            className="rounded-xl bg-creme/5 p-4 cursor-pointer hover:bg-creme/10 transition-colors"
+            onClick={() => copy(selected.hashtags, "hashtags")}
+          >
+            <p className="text-sm text-terracota/80">{selected.hashtags}</p>
+            <p className="text-xs text-creme/30 mt-2">
+              {copiedField === "hashtags" ? "Copiado!" : "Clica para copiar"}
+            </p>
+          </div>
+        </div>
+
+        {/* PLATAFORMAS */}
+        <div className="flex gap-2">
+          {selected.platforms.map((p) => (
+            <span key={p} className="px-3 py-1 rounded-full bg-creme/10 text-xs text-creme/60">
+              {p === "ig" ? "Instagram" : "TikTok"}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -65,86 +166,39 @@ export function AdminDashboard() {
           FreeMe Admin
         </h1>
         <button
-          onClick={exportMetricool}
+          onClick={exportCSV}
           className="rounded-full bg-salvia px-5 py-2 text-sm text-creme hover:bg-salvia/80"
         >
-          Export Metricool CSV
+          Export CSV
         </button>
       </div>
 
-      <div className="rounded-2xl bg-carvao border border-creme/10 p-6 mb-8">
-        <h2 className="text-lg text-areia mb-4">Gerar conteúdo</h2>
+      <p className="text-sm text-creme/50 mb-6">
+        30 dias de conteúdo. Clica num post para ver slides, caption, hashtags, e prompt Midjourney.
+      </p>
 
-        <div className="flex gap-3 mb-4">
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as "carousel" | "video")}
-            className="bg-carvao border border-creme/20 rounded-lg px-3 py-2 text-sm text-creme"
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {CONTENT_30_DAYS.map((post) => (
+          <button
+            key={post.day}
+            onClick={() => setSelected(post)}
+            className="flex items-center gap-4 rounded-xl border border-creme/10 px-5 py-4 text-left hover:border-creme/25 transition-colors"
           >
-            <option value="carousel">Carrossel</option>
-            <option value="video">Vídeo kinetic</option>
-          </select>
-
-          <select
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
-            className="bg-carvao border border-creme/20 rounded-lg px-3 py-2 text-sm text-creme"
-          >
-            {FREEME_BRAND.categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <textarea
-          value={brief}
-          onChange={(e) => setBrief(e.target.value)}
-          rows={3}
-          placeholder="Brief: sobre o que? Ex: carrossel sobre a culpa de gritar, tom reconhecimento, 6 slides..."
-          className="w-full bg-carvao border border-creme/20 rounded-xl px-4 py-3 text-sm text-creme placeholder:text-creme/30 resize-none mb-4"
-        />
-
-        <button
-          onClick={generate}
-          disabled={generating || !brief.trim()}
-          className="rounded-full bg-barro px-6 py-3 text-sm font-medium text-creme hover:bg-barro-symbol disabled:opacity-40"
-        >
-          {generating ? "A gerar com Claude..." : "Gerar"}
-        </button>
-
-        {result && (
-          <div className="mt-6 rounded-xl bg-creme/5 p-4">
-            <p className="text-sm text-terracota mb-2">{result.code} — {result.title}</p>
-            <p className="text-xs text-creme/60 whitespace-pre-line">{result.caption}</p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-lg text-areia mb-2">Conteúdo ({items.length})</h2>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between rounded-xl border border-creme/10 px-5 py-3"
-          >
-            <div>
-              <span className="text-xs text-terracota mr-2">{item.code}</span>
-              <span className="text-sm text-creme">{item.title}</span>
+            <div className="w-10 h-10 rounded-full bg-barro/20 flex items-center justify-center font-sans text-sm text-terracota font-medium shrink-0">
+              {post.day}
             </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                item.status === "draft" ? "bg-creme/10 text-creme/50"
-                : item.status === "rendered" ? "bg-salvia/20 text-salvia"
-                : item.status === "published" ? "bg-salvia text-creme"
-                : "bg-barro/20 text-barro"
-              }`}>
-                {item.status}
-              </span>
-              <span className="text-xs text-creme/30">
-                {item.type === "carousel" ? "C" : "V"}
-              </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-creme truncate">{post.title}</p>
+              <div className="flex gap-2 mt-1">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                  post.type === "carousel" ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
+                }`}>
+                  {post.type === "carousel" ? "C" : "V"}
+                </span>
+                <span className="text-[10px] text-creme/30">{post.categoria}</span>
+              </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
