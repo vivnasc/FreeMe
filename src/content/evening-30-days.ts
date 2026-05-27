@@ -3,7 +3,7 @@ import { type ContentPost } from "./content-types";
 export const EVENING_POSTS: ContentPost[] = [
   // === SEMANA 1: NOITE — EMOCIONAL (a mãe sente-se vista) ===
   {
-    day: 1, slot: "evening", time: "20:00", type: "video", categoria: "espelho",
+    day: 1, slot: "evening", time: "13:00", type: "video", categoria: "espelho",
     title: "O que ninguém te diz",
     slides: [
       { layout: "kinetic-line", body: "Ninguém te diz isto sobre ser mãe:" },
@@ -20,7 +20,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 2, slot: "evening", time: "20:00", type: "carousel", categoria: "ferida",
+    day: 2, slot: "evening", time: "13:00", type: "carousel", categoria: "ferida",
     title: "A mãe que sorri",
     slides: [
       { layout: "capa", body: "Ela sorri.\nPor dentro está a desabar.", bold: ["sorri", "desabar"] },
@@ -35,7 +35,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 3, slot: "evening", time: "20:00", type: "video", categoria: "espelho",
+    day: 3, slot: "evening", time: "13:00", type: "video", categoria: "espelho",
     title: "5 sinais de sobrecarga",
     slides: [
       { layout: "kinetic-line", body: "5 sinais de que carregas peso que não é teu:" },
@@ -52,7 +52,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 4, slot: "evening", time: "20:00", type: "carousel", categoria: "ferida",
+    day: 4, slot: "evening", time: "13:00", type: "carousel", categoria: "ferida",
     title: "O que carregas",
     slides: [
       { layout: "capa", body: "O teu filho.\nOs problemas do pai dele.\nA tristeza dos teus pais.\nOs conflitos da família toda.", bold: ["família toda"] },
@@ -66,7 +66,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 5, slot: "evening", time: "20:00", type: "video", categoria: "voz",
+    day: 5, slot: "evening", time: "13:00", type: "video", categoria: "voz",
     title: "Amor não é sacrifício",
     slides: [
       { layout: "kinetic-line", body: "Amar não exige desapareceres." },
@@ -83,7 +83,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 6, slot: "evening", time: "20:00", type: "carousel", categoria: "espelho",
+    day: 6, slot: "evening", time: "13:00", type: "carousel", categoria: "espelho",
     title: "Antes de seres mãe",
     slides: [
       { layout: "capa", body: "Antes de seres mãe,\neras uma mulher.\n\nLembras-te dela?", bold: ["Lembras-te dela?"] },
@@ -97,7 +97,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 7, slot: "evening", time: "20:00", type: "carousel", categoria: "cta",
+    day: 7, slot: "evening", time: "13:00", type: "carousel", categoria: "cta",
     title: "7 perguntas, 2 minutos",
     slides: [
       { layout: "capa", body: "7 perguntas.\n2 minutos.\nE vais perceber porque carregas o que carregas.", bold: ["7 perguntas", "2 minutos"] },
@@ -113,7 +113,7 @@ export const EVENING_POSTS: ContentPost[] = [
 
   // === SEMANA 2: NOITE — EMOCIONAL (bloqueios pessoais) ===
   {
-    day: 8, slot: "evening", time: "20:00", type: "video", categoria: "espelho",
+    day: 8, slot: "evening", time: "13:00", type: "video", categoria: "espelho",
     title: "A mãe que não educa",
     slides: [
       { layout: "kinetic-line", body: "Cedes quando devias dizer não." },
@@ -129,7 +129,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 9, slot: "evening", time: "20:00", type: "carousel", categoria: "ferida",
+    day: 9, slot: "evening", time: "13:00", type: "carousel", categoria: "ferida",
     title: "Ninguém te pergunta",
     slides: [
       { layout: "capa", body: "\"Como estás?\"\n\nNinguém te pergunta.\nE quando perguntam,\ntu dizes \"bem\".", bold: ["\"bem\""] },
@@ -143,7 +143,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 10, slot: "evening", time: "20:00", type: "video", categoria: "espelho",
+    day: 10, slot: "evening", time: "13:00", type: "video", categoria: "espelho",
     title: "A mãe perfeita",
     slides: [
       { layout: "kinetic-line", body: "Ela nunca perde a paciência." },
@@ -160,7 +160,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 11, slot: "evening", time: "20:00", type: "carousel", categoria: "ferida",
+    day: 11, slot: "evening", time: "13:00", type: "carousel", categoria: "ferida",
     title: "A ferida de filha",
     slides: [
       { layout: "capa", body: "Antes de seres mãe,\nfoste filha.\n\nE talvez aí algo\nte tenha faltado.", bold: ["faltado"] },
@@ -174,7 +174,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 12, slot: "evening", time: "20:00", type: "video", categoria: "voz",
+    day: 12, slot: "evening", time: "13:00", type: "video", categoria: "voz",
     title: "O rancor protege",
     slides: [
       { layout: "kinetic-line", body: "O rancor não é um defeito de caráter." },
@@ -190,7 +190,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 13, slot: "evening", time: "20:00", type: "carousel", categoria: "espelho",
+    day: 13, slot: "evening", time: "13:00", type: "carousel", categoria: "espelho",
     title: "A mãe que desapareceu",
     slides: [
       { layout: "capa", body: "Ela tinha um nome\nantes de ser mãe.\n\nTinha vontades.\nTinha vida.", bold: ["vida"] },
@@ -204,7 +204,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 14, slot: "evening", time: "20:00", type: "carousel", categoria: "cta",
+    day: 14, slot: "evening", time: "13:00", type: "carousel", categoria: "cta",
     title: "Os 7 bloqueios resumo",
     slides: [
       { layout: "capa", body: "Os 7 bloqueios emocionais\nque prendem as mães.\n\nQual é o teu?", bold: ["Qual é o teu?"] },
@@ -220,7 +220,7 @@ export const EVENING_POSTS: ContentPost[] = [
 
   // === SEMANA 3: NOITE — EMOCIONAL (transformação) ===
   {
-    day: 15, slot: "evening", time: "20:00", type: "video", categoria: "movimento",
+    day: 15, slot: "evening", time: "13:00", type: "video", categoria: "movimento",
     title: "Honrar sem repetir",
     slides: [
       { layout: "kinetic-line", body: "Uma voz que passou de mulher para mulher:" },
@@ -236,7 +236,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 16, slot: "evening", time: "20:00", type: "carousel", categoria: "espelho",
+    day: 16, slot: "evening", time: "13:00", type: "carousel", categoria: "espelho",
     title: "10 coisas que mães nunca dizem",
     slides: [
       { layout: "capa", body: "10 coisas que quase todas\nas mães sentem\ne nunca dizem a ninguém.", bold: ["nunca dizem"] },
@@ -251,7 +251,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 17, slot: "evening", time: "20:00", type: "video", categoria: "movimento",
+    day: 17, slot: "evening", time: "13:00", type: "video", categoria: "movimento",
     title: "Ocupar o teu lugar",
     slides: [
       { layout: "kinetic-line", body: "Tu não és a salvadora do teu filho." },
@@ -267,7 +267,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 18, slot: "evening", time: "20:00", type: "carousel", categoria: "voz",
+    day: 18, slot: "evening", time: "13:00", type: "carousel", categoria: "voz",
     title: "Quem é a Vivianne",
     slides: [
       { layout: "capa", body: "Sou a Vivianne.\nEscritora. Mãe de três.", bold: ["Mãe de três"] },
@@ -281,7 +281,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 19, slot: "evening", time: "20:00", type: "video", categoria: "espelho",
+    day: 19, slot: "evening", time: "13:00", type: "video", categoria: "espelho",
     title: "Mereces",
     slides: [
       { layout: "kinetic-line", body: "Mereces descanso sem culpa." },
@@ -297,7 +297,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 20, slot: "evening", time: "20:00", type: "carousel", categoria: "ferida",
+    day: 20, slot: "evening", time: "13:00", type: "carousel", categoria: "ferida",
     title: "Às 3 da manhã",
     slides: [
       { layout: "capa", body: "São 3 da manhã.\nTudo dorme menos tu.", bold: ["3 da manhã"] },
@@ -310,7 +310,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 21, slot: "evening", time: "20:00", type: "carousel", categoria: "cta",
+    day: 21, slot: "evening", time: "13:00", type: "carousel", categoria: "cta",
     title: "O que é o FreeMe",
     slides: [
       { layout: "capa", body: "Não é um curso.\nNão é conteúdo.\nNão é terapia.\n\nÉ uma travessia.", bold: ["travessia"] },
@@ -326,7 +326,7 @@ export const EVENING_POSTS: ContentPost[] = [
 
   // === SEMANA 4: NOITE — EMOCIONAL (conversão) ===
   {
-    day: 22, slot: "evening", time: "20:00", type: "video", categoria: "voz",
+    day: 22, slot: "evening", time: "13:00", type: "video", categoria: "voz",
     title: "A culpa não é boa conselheira",
     slides: [
       { layout: "kinetic-line", body: "A culpa não te torna melhor mãe." },
@@ -343,7 +343,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 23, slot: "evening", time: "20:00", type: "carousel", categoria: "espelho",
+    day: 23, slot: "evening", time: "13:00", type: "carousel", categoria: "espelho",
     title: "Carta à mãe do início",
     slides: [
       { layout: "capa", body: "Se pudesses voltar atrás\ne falar à mãe que eras\nquando tudo começou,\no que lhe dirias?", bold: ["o que lhe dirias?"] },
@@ -358,7 +358,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 24, slot: "evening", time: "20:00", type: "video", categoria: "movimento",
+    day: 24, slot: "evening", time: "13:00", type: "video", categoria: "movimento",
     title: "Não tens de repetir",
     slides: [
       { layout: "kinetic-line", body: "Quanto mais juras\n\"nunca serei como ela\"," },
@@ -373,7 +373,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 25, slot: "evening", time: "20:00", type: "carousel", categoria: "ferida",
+    day: 25, slot: "evening", time: "13:00", type: "carousel", categoria: "ferida",
     title: "A geração sanduíche",
     slides: [
       { layout: "capa", body: "Cuidas dos filhos.\nCuidas dos pais.\nCuidas do marido.\n\nE quem cuida de ti?", bold: ["quem cuida de ti?"] },
@@ -387,7 +387,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 26, slot: "evening", time: "20:00", type: "video", categoria: "espelho",
+    day: 26, slot: "evening", time: "13:00", type: "video", categoria: "espelho",
     title: "A mãe perfeita não existe v2",
     slides: [
       { layout: "kinetic-line", body: "Ela nunca grita." },
@@ -403,7 +403,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 27, slot: "evening", time: "20:00", type: "carousel", categoria: "cta",
+    day: 27, slot: "evening", time: "13:00", type: "carousel", categoria: "cta",
     title: "O que muda",
     slides: [
       { layout: "capa", body: "O FreeMe não promete\nque a dor não volta.\n\nPromete que sabes\no caminho de volta a ti.", bold: ["o caminho de volta a ti"] },
@@ -416,7 +416,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 28, slot: "evening", time: "20:00", type: "video", categoria: "voz",
+    day: 28, slot: "evening", time: "13:00", type: "video", categoria: "voz",
     title: "Eu vejo-te",
     slides: [
       { layout: "kinetic-line", body: "Se és a mãe que gritou e depois chorou escondida." },
@@ -432,7 +432,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 29, slot: "evening", time: "20:00", type: "carousel", categoria: "cta",
+    day: 29, slot: "evening", time: "13:00", type: "carousel", categoria: "cta",
     title: "Como funciona",
     slides: [
       { layout: "capa", body: "Como funciona o FreeMe.", bold: ["Como funciona"] },
@@ -446,7 +446,7 @@ export const EVENING_POSTS: ContentPost[] = [
     platforms: ["ig", "tiktok"],
   },
   {
-    day: 30, slot: "evening", time: "20:00", type: "carousel", categoria: "cta",
+    day: 30, slot: "evening", time: "13:00", type: "carousel", categoria: "cta",
     title: "Não vieste tarde",
     slides: [
       { layout: "capa", body: "Não vieste tarde.\nVieste a tempo de ti.", bold: ["a tempo de ti"] },

@@ -322,7 +322,7 @@ export function AdminDashboard() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-terracota font-medium">D{post.day}</span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded ${isMorning ? "bg-amber-500/15 text-amber-400" : "bg-indigo-500/15 text-indigo-400"}`}>
-                        {isMorning ? "09h" : "20h"}
+                        {isMorning ? "10h" : "13h"}
                       </span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded ${
                         isCarousel ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
