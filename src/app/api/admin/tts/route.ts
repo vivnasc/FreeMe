@@ -4,21 +4,25 @@ import { getAdminSupabase } from "@/lib/admin/supabase-admin";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "";
-const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_multilingual_v2";
 
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) {
+  if (!ELEVENLABS_API_KEY) {
     return NextResponse.json({ error: "ElevenLabs not configured" }, { status: 500 });
   }
 
-  const { text, blocker, filename } = await request.json();
+  const { text, blocker, filename, voiceId } = await request.json();
+  const voice = voiceId || ELEVENLABS_VOICE_ID;
+
+  if (!voice) {
+    return NextResponse.json({ error: "Voice ID required" }, { status: 400 });
+  }
 
   const res = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
+    `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
     {
       method: "POST",
       headers: {
@@ -28,7 +32,6 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         text,
-        model_id: ELEVENLABS_MODEL,
         voice_settings: {
           stability: 0.55,
           similarity_boost: 0.8,
