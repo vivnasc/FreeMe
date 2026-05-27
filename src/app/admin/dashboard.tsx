@@ -3,11 +3,17 @@
 import { useState } from "react";
 import { CONTENT_30_DAYS, type ContentPost } from "@/content/social-30-days";
 import { MJ_PROMPTS, FREEME_STYLE_BASE } from "@/content/mj-prompts";
+import { ImageDropZone } from "@/components/image-drop-zone";
 
 export function AdminDashboard() {
   const [selected, setSelected] = useState<ContentPost | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [tab, setTab] = useState<"slides" | "copy" | "imagem">("slides");
+  const [slideImages, setSlideImages] = useState<Record<string, string>>({});
+
+  function onImageUploaded(slideId: string, url: string) {
+    setSlideImages((prev) => ({ ...prev, [slideId]: url }));
+  }
 
   function copy(text: string, field: string) {
     navigator.clipboard.writeText(text);
@@ -96,6 +102,9 @@ export function AdminDashboard() {
         {tab === "slides" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {selected.slides.map((slide, i) => {
+              const slideId = `day-${selected.day}-slide-${i}`;
+              const imageUrl = slideImages[slideId];
+              const acceptsPhoto = ["capa", "conteudo", "kinetic-line"].includes(slide.layout);
               const palettes: Record<string, { bg: string; text: string; border: string }> = {
                 capa: { bg: "#8C4A36", text: "#FBF4EC", border: "#C87A5B" },
                 conteudo: { bg: "#FBF4EC", text: "#2E241D", border: "#F3E4D6" },
@@ -107,9 +116,9 @@ export function AdminDashboard() {
               const p = palettes[slide.layout] || palettes.conteudo;
 
               return (
+                <div key={i} className="flex flex-col gap-2">
                 <div
-                  key={i}
-                  className="rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform"
+                  className="rounded-2xl overflow-hidden relative cursor-pointer hover:scale-[1.02] transition-transform"
                   style={{
                     backgroundColor: p.bg,
                     color: p.text,
@@ -118,16 +127,22 @@ export function AdminDashboard() {
                   }}
                   onClick={() => copy(slide.body, `slide-${i}`)}
                 >
-                  <div className="h-full flex flex-col justify-center p-5">
+                  {imageUrl && (
+                    <>
+                      <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/80" />
+                    </>
+                  )}
+                  <div className="h-full flex flex-col justify-center p-5 relative z-10">
                     <p className="text-[9px] uppercase tracking-widest opacity-40 mb-2">{slide.layout}</p>
                     {slide.layout === "capa" && (
                       <>
-                        <p className="text-sm font-serif leading-snug whitespace-pre-line">{slide.body}</p>
+                        <p className={`text-sm font-serif leading-snug whitespace-pre-line ${imageUrl ? "text-white" : ""}`}>{slide.body}</p>
                         <p className="text-[10px] italic opacity-50 mt-3">FreeMe</p>
                       </>
                     )}
                     {(slide.layout === "conteudo" || slide.layout === "kinetic-line") && (
-                      <p className="text-xs leading-relaxed whitespace-pre-line">{slide.body}</p>
+                      <p className={`text-xs leading-relaxed whitespace-pre-line ${imageUrl ? "text-white" : ""}`}>{slide.body}</p>
                     )}
                     {slide.layout === "citacao" && (
                       <p className="text-xs italic leading-relaxed">&ldquo;{slide.body}&rdquo;</p>
@@ -146,6 +161,14 @@ export function AdminDashboard() {
                       </div>
                     )}
                   </div>
+                </div>
+                {acceptsPhoto && (
+                  <ImageDropZone
+                    slideId={slideId}
+                    currentUrl={imageUrl}
+                    onUploaded={(url) => onImageUploaded(slideId, url)}
+                  />
+                )}
                 </div>
               );
             })}
