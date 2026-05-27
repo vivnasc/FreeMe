@@ -31,6 +31,10 @@ export async function generateMetadata({
   return {
     title: `${dict.meta.title} | ${dict.meta.subtitle}`,
     description: dict.meta.description,
+    icons: {
+      icon: "/favicon.ico",
+      apple: "/apple-touch-icon.png",
+    },
   };
 }
 
