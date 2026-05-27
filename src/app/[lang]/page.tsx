@@ -317,6 +317,11 @@ export default async function LandingPage({
           FreeMe, {lang === "pt" ? "A Travessia da Mãe" : "A Mother's Crossing"}.{" "}
           {lang === "pt" ? "Um percurso de" : "A journey by"} Vivianne dos Santos.
         </p>
+        <p className="mt-3">
+          <a href="mailto:ola@viviannedossantos.com" className="text-[#C8A88E] hover:text-areia transition-colors">
+            ola@viviannedossantos.com
+          </a>
+        </p>
       </footer>
 
       <SafetyButton label={dict.safety.helpNow} dict={dict.safety} />
