@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CONTENT_30_DAYS, type ContentPost } from "@/content/social-30-days";
+import { ALL_POSTS } from "@/content/content-calendar";
+import { type ContentPost } from "@/content/content-types";
 import { MJ_PROMPTS, FREEME_STYLE_BASE } from "@/content/mj-prompts";
 import { ImageDropZone } from "@/components/image-drop-zone";
 
@@ -41,7 +42,7 @@ export function AdminDashboard() {
 
   function exportAllCSV() {
     const header = "Day,Type,Category,Title,IG Caption,TikTok Caption,Hashtags,MJ Prompt";
-    const rows = CONTENT_30_DAYS.map((p) => {
+    const rows = ALL_POSTS.map((p) => {
       const mj = MJ_PROMPTS[p.day]?.[0]?.prompt || "";
       return [
         p.day,
@@ -275,10 +276,10 @@ export function AdminDashboard() {
 
   // === CALENDAR VIEW ===
   const weeks = [
-    { label: "Semana 1: Identificação", days: CONTENT_30_DAYS.filter((p) => p.day <= 7) },
-    { label: "Semana 2: Educação (7 bloqueios)", days: CONTENT_30_DAYS.filter((p) => p.day > 7 && p.day <= 14) },
-    { label: "Semana 3: Transformação + Autoridade", days: CONTENT_30_DAYS.filter((p) => p.day > 14 && p.day <= 21) },
-    { label: "Semana 4: Conversão", days: CONTENT_30_DAYS.filter((p) => p.day > 21) },
+    { label: "Semana 1: Identificação", days: ALL_POSTS.filter((p) => p.day <= 7) },
+    { label: "Semana 2: Educação (7 bloqueios)", days: ALL_POSTS.filter((p) => p.day > 7 && p.day <= 14) },
+    { label: "Semana 3: Transformação + Autoridade", days: ALL_POSTS.filter((p) => p.day > 14 && p.day <= 21) },
+    { label: "Semana 4: Conversão", days: ALL_POSTS.filter((p) => p.day > 21) },
   ];
 
   return (
@@ -286,7 +287,7 @@ export function AdminDashboard() {
       <div className="flex items-center justify-between mb-10">
         <div>
           <h1 className="text-2xl font-semibold text-terracota">FreeMe Admin</h1>
-          <p className="text-sm text-creme/40 mt-1">30 dias de conteúdo para IG e TikTok</p>
+          <p className="text-sm text-creme/40 mt-1">60 posts (2/dia) para IG e TikTok</p>
         </div>
         <button onClick={exportAllCSV} className="rounded-full bg-salvia px-5 py-2 text-sm text-creme hover:bg-salvia/80">
           Export CSV completo
@@ -297,18 +298,18 @@ export function AdminDashboard() {
         <div key={week.label} className="mb-8">
           <h2 className="text-sm text-creme/50 uppercase tracking-wide mb-4">{week.label}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {week.days.map((post) => {
+            {week.days.map((post, idx) => {
               const firstSlide = post.slides[0];
               const isCarousel = post.type === "carousel";
+              const isMorning = post.slot === "morning";
               const bgColor = firstSlide.layout === "capa" ? "#8C4A36" : "#2E241D";
 
               return (
                 <button
-                  key={post.day}
+                  key={`${post.day}-${post.slot}`}
                   onClick={() => { setSelected(post); setTab("slides"); }}
                   className="text-left rounded-2xl overflow-hidden border border-creme/10 hover:border-creme/25 transition-all group"
                 >
-                  {/* Mini preview */}
                   <div
                     className="h-24 flex items-center justify-center px-4"
                     style={{ backgroundColor: bgColor }}
@@ -319,7 +320,10 @@ export function AdminDashboard() {
                   </div>
                   <div className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-terracota font-medium">Dia {post.day}</span>
+                      <span className="text-xs text-terracota font-medium">D{post.day}</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded ${isMorning ? "bg-amber-500/15 text-amber-400" : "bg-indigo-500/15 text-indigo-400"}`}>
+                        {isMorning ? "09h" : "20h"}
+                      </span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded ${
                         isCarousel ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
                       }`}>
