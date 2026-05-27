@@ -212,15 +212,17 @@ function buildHTML(slide) {
     font-family: 'Fraunces', serif; font-size: 28px;
     color: ${L.text}; opacity: 0.5; z-index: 4;
     font-weight: 300;
+    display: flex; align-items: center; gap: 12px;
   }
   .freeme-logo em { font-weight: 500; font-style: italic; }
+  .freeme-logo .logo-icon { width: 32px; height: 32px; }
 </style>
 </head>
 <body>
   ${slide.layout === 'capa-photo' ? '<div class="bg-photo-placeholder"></div><div class="bg-gradient-photo"></div>' : '<div class="bg-solid"></div>'}
   ${slide.layout === 'split-top' ? '<div class="split-photo-area"><span class="placeholder-text">Imagem MJ aqui</span></div>' : ''}
   <div class="grain"></div>
-  <div class="freeme-logo">Free<em>Me</em></div>
+  <div class="freeme-logo"><svg class="logo-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M256 256 C256 210 220 180 180 180 C130 180 100 220 100 270 C100 340 150 390 220 390 C320 390 380 320 380 220 C380 130 310 70 220 70 C120 70 50 150 50 250 C50 380 150 470 290 470 C345 470 385 455 425 425" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg>Free<em>Me</em></div>
   <div class="content">
     <div class="body">${slide.body}</div>
     ${L.hasCTA ? '<div class="cta-btn">freeme.viviannedossantos.com</div>' : ''}
