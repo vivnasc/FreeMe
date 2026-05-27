@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Fraunces } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, getDictionary, locales } from "./dictionaries";
-import "../globals.css";
 
 const fraunces = Fraunces({
   subsets: ["latin", "latin-ext"],
