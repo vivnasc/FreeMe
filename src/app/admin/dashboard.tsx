@@ -584,6 +584,7 @@ function BulkMJ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   useEffect(() => {
     setGenerated(loadGenerated());
@@ -737,32 +738,102 @@ function BulkMJ({
         <p className="text-xs text-creme/70 font-mono mt-2">{FREEME_STYLE_BASE}</p>
       </details>
 
-      <div className="flex flex-col gap-3">
-        {allPrompts.map((mj) => {
-          const imgUrl = generated[mj.key];
-          const err = errors[mj.key];
+      {/* Progress bar */}
+      {progress && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-xs text-creme/60 mb-1">
+            <span>A gerar: {progress.done} / {progress.total}</span>
+            <span>{Math.round((progress.done / progress.total) * 100)}%</span>
+          </div>
+          <div className="h-2 bg-creme/5 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-salvia transition-all"
+              style={{ width: `${(progress.done / progress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Grelha: 60 posts agrupados, cada um com até 2 thumbnails */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        {posts.map((post) => {
+          const postPrompts = allPrompts.filter((p) => p.key.startsWith(`D${post.day}-${post.slot}-`));
+          if (postPrompts.length === 0) return null;
+          const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
+          const generatedCount = postPrompts.filter((p) => generated[p.key]).length;
+          const errorCount = postPrompts.filter((p) => errors[p.key]).length;
+          const isExpanded = expandedKey === pKey;
+
           return (
-            <div key={mj.key} className="rounded-xl bg-creme/5 p-4 flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-terracota font-medium">{mj.postKey}</span>
-                  <span className="text-[10px] text-creme/40">slide {mj.slideIndex} · {mj.usage} · {mj.type}</span>
-                  {imgUrl && <span className="text-[10px] px-1.5 py-0.5 rounded bg-salvia/20 text-salvia">✓ gerada</span>}
-                  {err && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">erro</span>}
+            <div key={pKey} className="rounded-xl bg-creme/5 overflow-hidden flex flex-col">
+              <button
+                onClick={() => setExpandedKey(isExpanded ? null : pKey)}
+                className="w-full text-left"
+              >
+                <div className="grid grid-cols-2 gap-px bg-carvao/40">
+                  {postPrompts.map((mj) => {
+                    const url = generated[mj.key];
+                    const err = errors[mj.key];
+                    return (
+                      <div
+                        key={mj.key}
+                        className="relative bg-carvao/60"
+                        style={{ aspectRatio: post.type === "carousel" ? "4/5" : "9/16" }}
+                      >
+                        {url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className={`text-[10px] ${err ? "text-red-400/80" : "text-creme/30"}`}>
+                              {err ? "erro" : `slide ${mj.slideIndex}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {postPrompts.length === 1 && (
+                    <div className="bg-carvao/30" style={{ aspectRatio: post.type === "carousel" ? "4/5" : "9/16" }} />
+                  )}
                 </div>
-                <button onClick={() => onCopy(mj.full, mj.key)} className="text-xs text-terracota hover:text-terracota/80">
-                  {copiedField === mj.key ? "Copiado!" : "Copiar (com estilo)"}
-                </button>
-              </div>
-              <p className="text-xs text-creme/50 italic truncate">{mj.title}</p>
-              <div className="flex gap-3 items-start">
-                {imgUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={imgUrl} alt="" className="w-24 h-30 object-cover rounded-lg flex-shrink-0" style={{ aspectRatio: mj.type === "carousel" ? "4/5" : "9/16" }} />
-                )}
-                <p className="text-sm text-creme/85 font-mono leading-relaxed">{mj.prompt}</p>
-              </div>
-              {err && <p className="text-xs text-red-300/80 italic">{err}</p>}
+                <div className="px-3 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-terracota font-medium">{pKey}</span>
+                    <span className={`text-[9px] px-1 py-0.5 rounded ${
+                      post.type === "carousel" ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
+                    }`}>{post.type === "carousel" ? "C" : "V"}</span>
+                  </div>
+                  <span className="text-[10px] text-creme/40">
+                    {generatedCount}/{postPrompts.length}
+                    {errorCount > 0 && <span className="text-red-400/70"> · {errorCount}!</span>}
+                  </span>
+                </div>
+              </button>
+              {isExpanded && (
+                <div className="border-t border-creme/10 px-3 py-3 flex flex-col gap-3 bg-carvao/40">
+                  <p className="text-[11px] text-creme/50 italic">{post.title}</p>
+                  {postPrompts.map((mj) => {
+                    const url = generated[mj.key];
+                    const err = errors[mj.key];
+                    return (
+                      <div key={mj.key} className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-creme/40">
+                            slide {mj.slideIndex} · {mj.usage}
+                            {url && <span className="ml-2 text-salvia">✓</span>}
+                          </span>
+                          <button onClick={() => onCopy(mj.full, mj.key)} className="text-[10px] text-terracota hover:text-terracota/80">
+                            {copiedField === mj.key ? "✓" : "copiar"}
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-creme/70 font-mono leading-relaxed">{mj.prompt}</p>
+                        {err && <p className="text-[10px] text-red-300/70 italic">{err}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
