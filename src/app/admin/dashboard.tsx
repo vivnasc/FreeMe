@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ALL_POSTS } from "@/content/content-calendar";
 import { type ContentPost } from "@/content/content-types";
 import { getMJPrompts, FREEME_STYLE_BASE } from "@/content/mj-prompts";
@@ -466,6 +466,22 @@ function CaptionBlock({
   );
 }
 
+const MJ_STORAGE_KEY = "freeme-mj-generated";
+
+function loadGenerated(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(MJ_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveGenerated(map: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(MJ_STORAGE_KEY, JSON.stringify(map));
+}
+
 function BulkMJ({
   posts,
   copiedField,
@@ -477,6 +493,15 @@ function BulkMJ({
   onCopy: (t: string, f: string) => void;
   onDownload: (t: string, name: string) => void;
 }) {
+  const [generated, setGenerated] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  useEffect(() => {
+    setGenerated(loadGenerated());
+  }, []);
+
   const allPrompts = useMemo(() => {
     return posts.flatMap((p) =>
       getMJPrompts(p.day, p.slot).map((m, i) => ({
@@ -491,6 +516,78 @@ function BulkMJ({
       }))
     );
   }, [posts]);
+
+  type Item = (typeof allPrompts)[number];
+
+  async function generateBatch(items: Item[]): Promise<{ urls: Record<string, string>; errors: Record<string, string> }> {
+    const res = await fetch("/api/admin/generate-mj", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: items.map((i) => ({ key: i.key, prompt: i.prompt, type: i.type })),
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as { results: { key: string; url: string | null; error: string | null }[] };
+    const urls: Record<string, string> = {};
+    const errs: Record<string, string> = {};
+    for (const r of data.results) {
+      if (r.url) urls[r.key] = r.url;
+      if (r.error) errs[r.key] = r.error;
+    }
+    return { urls: urls, errors: errs };
+  }
+
+  async function runGeneration(items: Item[]) {
+    setRunning(true);
+    setErrors({});
+    setProgress({ done: 0, total: items.length });
+
+    const next = { ...generated };
+    const nextErrors: Record<string, string> = {};
+    const BATCH = 3;
+
+    for (let i = 0; i < items.length; i += BATCH) {
+      const chunk = items.slice(i, i + BATCH);
+      try {
+        const { urls, errors: errs } = await generateBatch(chunk);
+        Object.assign(next, urls);
+        Object.assign(nextErrors, errs);
+        setGenerated({ ...next });
+        saveGenerated(next);
+        setErrors({ ...nextErrors });
+      } catch (e) {
+        for (const c of chunk) nextErrors[c.key] = String(e);
+        setErrors({ ...nextErrors });
+      }
+      setProgress({ done: Math.min(i + BATCH, items.length), total: items.length });
+    }
+
+    setRunning(false);
+    setProgress(null);
+  }
+
+  function runTest3() {
+    const sample = allPrompts.slice(0, 3);
+    if (sample.length === 0) return;
+    runGeneration(sample);
+  }
+
+  function runAllMissing() {
+    const missing = allPrompts.filter((p) => !generated[p.key]);
+    if (missing.length === 0) {
+      alert("Todos os prompts já foram gerados. Apaga do localStorage se quiseres regerar.");
+      return;
+    }
+    if (!confirm(`Gerar ${missing.length} imagem(s) via Replicate Flux 1.1 Pro Ultra? Custo estimado: ~$${(missing.length * 0.06).toFixed(2)}`)) return;
+    runGeneration(missing);
+  }
+
+  function clearAll() {
+    if (!confirm("Apagar referências locais às imagens geradas? (Não apaga do Supabase Storage, só do teu navegador)")) return;
+    setGenerated({});
+    saveGenerated({});
+  }
 
   // Versao "pura": 1 prompt por linha, estilo ja incluido, pronto a colar
   const pure = allPrompts.map((p) => p.full).join("\n");
