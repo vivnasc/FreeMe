@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { ALL_POSTS } from "@/content/content-calendar";
 import { type ContentPost } from "@/content/content-types";
 import { getMJPrompts, FREEME_STYLE_BASE } from "@/content/mj-prompts";
@@ -20,8 +21,23 @@ function tiktokCaption(post: ContentPost): string {
   return `${short}\n\n${tags} #fyp #paraamães`;
 }
 
+function viewFromPath(path: string): MainView {
+  if (path.startsWith("/admin/conteudo")) return "conteudo";
+  if (path.startsWith("/admin/imagens")) return "imagens";
+  if (path.startsWith("/admin/slides")) return "slides";
+  if (path.startsWith("/admin/distribuir")) return "distribuir";
+  return "studio";
+}
+
+function pathFromView(view: MainView): string {
+  return view === "studio" ? "/admin" : `/admin/${view}`;
+}
+
 export function AdminDashboard() {
-  const [view, setView] = useState<MainView>("studio");
+  const router = useRouter();
+  const pathname = usePathname();
+  const view = viewFromPath(pathname);
+  const setView = (v: MainView) => router.push(pathFromView(v));
   const [conteudoSub, setConteudoSub] = useState<ConteudoSub>("lista");
   const [selected, setSelected] = useState<ContentPost | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("slides");
@@ -264,39 +280,35 @@ export function AdminDashboard() {
     );
   }
 
+  const phaseTitles: Record<MainView, string> = {
+    studio: "Studio",
+    conteudo: "Conteúdo · 60 posts prontos",
+    imagens: "Imagens · Claude → Replicate",
+    slides: "Slides · render PNG via GitHub Actions",
+    distribuir: "Distribuir · CSV Metricool",
+  };
+  const phaseNum: Record<MainView, string> = {
+    studio: "Vista geral",
+    conteudo: "Fase 1",
+    imagens: "Fase 2",
+    slides: "Fase 3",
+    distribuir: "Fase 4",
+  };
+
   // ============== MAIN VIEWS ==============
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
+    <div>
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+      <div className="row between" style={{ marginBottom: 24 }}>
         <div>
-          <h1 className="text-2xl font-semibold text-terracota">FreeMe Admin</h1>
-          <p className="text-sm text-creme/40 mt-1">{ALL_POSTS.length} posts · 30 dias · IG + TikTok</p>
+          <div className="mini" style={{ marginBottom: 4 }}>{phaseNum[view]}</div>
+          <h1>{phaseTitles[view]}</h1>
         </div>
-        <button onClick={exportAllCSV} className="rounded-full bg-salvia px-5 py-2 text-sm text-creme hover:bg-salvia/80">
-          Export CSV ({filtered.length})
-        </button>
-      </div>
-
-      {/* PHASE TABS */}
-      <div className="flex gap-1 bg-creme/5 rounded-xl p-1 mb-6">
-        {([
-          ["studio", "Studio"],
-          ["conteudo", "1 · Conteúdo"],
-          ["imagens", "2 · Imagens"],
-          ["slides", "3 · Slides"],
-          ["distribuir", "4 · Distribuir"],
-        ] as const).map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setView(k)}
-            className={`flex-1 rounded-lg py-2.5 text-sm transition-all ${
-              view === k ? "bg-creme/10 text-creme font-medium" : "text-creme/40 hover:text-creme/60"
-            }`}
-          >
-            {label}
+        {view !== "studio" && (
+          <button onClick={exportAllCSV} className="btn">
+            Export CSV ({filtered.length})
           </button>
-        ))}
+        )}
       </div>
 
       {/* STUDIO (overview) */}

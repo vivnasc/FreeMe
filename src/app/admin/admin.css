@@ -1,0 +1,266 @@
+/* FreeMe admin — paleta + componentes-base (adaptado de SyncHim PIPELINE-UX-PRODUCAO.md §17) */
+
+:root {
+  --bg:          #2E241D;  /* carvao - fundo principal */
+  --bg-elev:     #3A2E26;  /* surfaces ligeiramente acima */
+  --bg-card:    #443630;  /* cards */
+  --bg-deep:    #1E1813;  /* sidebar */
+  --texto:       #FBF4EC;  /* creme - texto principal */
+  --texto-suave: #C0B5A8;  /* muted */
+  --barro:       #8C4A36;  /* primary action */
+  --terracota:   #C87A5B;  /* accent / highlight */
+  --areia:       #F3E4D6;  /* areia clara */
+  --salvia:      #7D8A6A;  /* success */
+  --ouro:        #EBAE4A;  /* bold em slides + accent */
+  --bordeaux:    #8B2235;  /* danger / failed */
+  --linha:       #443630;  /* borders / dividers */
+}
+
+/* ============== LAYOUT SHELL ============== */
+.admin-body {
+  background: var(--bg);
+  color: var(--texto);
+  min-height: 100vh;
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+.admin-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+.admin-side {
+  background: var(--bg-deep);
+  border-right: 1px solid var(--linha);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.admin-brand {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--texto);
+}
+.brand-mark { color: var(--terracota); font-size: 22px; }
+.admin-nav { display: flex; flex-direction: column; gap: 2px; }
+.admin-nav a {
+  color: var(--texto-suave);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-nav a:hover { background: var(--bg-card); color: var(--texto); }
+.admin-nav a.active {
+  background: var(--bg-card);
+  color: var(--terracota);
+  border-left: 2px solid var(--terracota);
+  padding-left: 10px;
+}
+.admin-nav .nav-num {
+  font-size: 10px;
+  color: var(--texto-suave);
+  width: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+.admin-main {
+  padding: 32px 40px;
+  max-width: 1400px;
+  width: 100%;
+}
+.admin-main h1 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  font-size: 28px;
+  margin: 0 0 4px;
+  color: var(--texto);
+}
+.admin-main h2 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  font-size: 20px;
+  margin: 24px 0 12px;
+}
+
+/* ============== UTILITIES ============== */
+.muted { color: var(--texto-suave); }
+.mini {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+/* ============== CARD ============== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  padding: 20px;
+}
+
+/* ============== BUTTON ============== */
+.btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--linha);
+  color: var(--texto);
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn:hover { border-color: var(--terracota); }
+.btn.primary {
+  background: var(--barro);
+  color: var(--texto);
+  border-color: var(--barro);
+}
+.btn.primary:hover { background: var(--terracota); border-color: var(--terracota); }
+.btn.salvia {
+  background: var(--salvia);
+  color: var(--texto);
+  border-color: var(--salvia);
+}
+.btn.salvia:hover { background: #8a9a78; border-color: #8a9a78; }
+.btn.danger { color: var(--bordeaux); border-color: var(--bordeaux); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--linha); background: transparent; }
+
+/* ============== INPUTS ============== */
+.input, textarea, select {
+  font: inherit;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--linha);
+  color: var(--texto);
+  padding: 8px 10px;
+  border-radius: 4px;
+}
+.input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--terracota);
+}
+.admin-main label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* ============== PILL (status badges) ============== */
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.pill.pending  { color: var(--texto-suave); border-color: var(--linha); }
+.pill.partial  { color: var(--ouro);        border-color: var(--ouro); }
+.pill.ok       { color: var(--salvia);      border-color: var(--salvia); background: rgba(125, 138, 106, 0.1); }
+.pill.locked   { color: var(--texto-suave); border-color: var(--linha); opacity: 0.5; }
+.pill.failed   { color: var(--bordeaux);    border-color: var(--bordeaux); }
+
+/* ============== TABLE ============== */
+table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.t th, table.t td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--linha);
+}
+table.t th {
+  color: var(--texto-suave);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+table.t tr:hover td { background: rgba(200, 122, 91, 0.04); }
+
+/* ============== ROW HELPERS ============== */
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.row.tight { gap: 6px; }
+
+/* ============== JSON OUTPUT ============== */
+pre.json {
+  background: var(--bg);
+  border: 1px solid var(--linha);
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 11px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  color: var(--texto);
+}
+pre.json.ok { border-color: rgba(125, 138, 106, 0.5); }
+pre.json.error { border-color: var(--bordeaux); color: #ffb3b3; }
+
+/* ============== PHASE INDICATORS ============== */
+.phase-num {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 22px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 11px;
+  border: 1px solid var(--linha);
+  color: var(--texto-suave);
+  margin-right: 8px;
+}
+.phase-num.ok      { border-color: var(--salvia); color: var(--salvia); }
+.phase-num.partial { border-color: var(--ouro);   color: var(--ouro); }
+.phase-num.locked  { opacity: 0.4; }
+
+/* ============== PROGRESS BAR ============== */
+.bar {
+  width: 100%;
+  height: 8px;
+  background: var(--linha);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bar > div {
+  height: 100%;
+  background: var(--ouro);
+  transition: width 0.3s ease;
+}
+.bar > div.salvia { background: var(--salvia); }
+.bar > div.terracota { background: var(--terracota); }
+
+/* ============== MOBILE ============== */
+@media (max-width: 768px) {
+  .admin-shell { grid-template-columns: 1fr; }
+  .admin-side {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 12px 16px;
+  }
+  .admin-nav { flex-direction: row; overflow-x: auto; }
+  .admin-foot { display: none; }
+  .admin-main { padding: 16px; }
+}
