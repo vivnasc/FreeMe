@@ -485,37 +485,50 @@ function BulkMJ({
         title: p.title,
         type: p.type,
         prompt: m.prompt,
+        full: `${m.prompt}, ${FREEME_STYLE_BASE}`,
         slideIndex: m.slideIndex,
         usage: m.usage,
       }))
     );
   }, [posts]);
 
-  const everything = allPrompts.map((p) => `# ${p.postKey} — ${p.title} (slide ${p.slideIndex}, ${p.usage})\n${p.prompt}`).join("\n\n");
+  // Versao "pura": 1 prompt por linha, estilo ja incluido, pronto a colar
+  const pure = allPrompts.map((p) => p.full).join("\n");
+  // Versao etiquetada: organizada por post, com cabecalhos (so para referencia)
+  const labeled = allPrompts.map((p) => `# ${p.postKey} — ${p.title} (slide ${p.slideIndex}, ${p.usage})\n${p.full}`).join("\n\n");
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-creme/60">
-          {allPrompts.length} prompts MJ prontos para gerar em bulk no Midjourney.
+      <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 mb-4">
+        <p className="text-sm text-amber-200 font-medium mb-1">Como usar no Midjourney</p>
+        <p className="text-xs text-amber-100/70 leading-relaxed">
+          1. Clica em <strong>Copiar prompts puros</strong> (já levam o estilo FreeMe incluído).<br />
+          2. Cola no Discord uma linha de cada vez, com <code className="bg-carvao/40 px-1 rounded">/imagine</code> à frente.<br />
+          3. Para teres referência (que prompt = que post), usa o <strong>Download etiquetado</strong> — esse não cola no MJ, é só o teu mapa.
         </p>
-        <div className="flex gap-3">
-          <button onClick={() => onCopy(everything, "mj-all")} className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80">
-            {copiedField === "mj-all" ? "Copiado todos!" : "Copiar todos"}
+      </div>
+
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <p className="text-sm text-creme/60">
+          {allPrompts.length} prompts · estilo FreeMe já incluído em cada linha.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => onCopy(pure, "mj-pure")} className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80">
+            {copiedField === "mj-pure" ? "Copiado!" : `Copiar prompts puros (${allPrompts.length})`}
           </button>
-          <button onClick={() => onDownload(everything, "freeme-mj-prompts.txt")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
-            Download .txt
+          <button onClick={() => onDownload(pure, "freeme-mj-prompts-puros.txt")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
+            Download puros
+          </button>
+          <button onClick={() => onDownload(labeled, "freeme-mj-prompts-referencia.txt")} className="text-xs rounded-full bg-creme/5 px-4 py-2 text-creme/70 hover:bg-creme/10">
+            Download etiquetado (ref)
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl bg-creme/5 p-3 mb-6">
-        <p className="text-xs text-creme/40 mb-1">Estilo base FreeMe (junta a todos os prompts ao gerar):</p>
-        <p className="text-xs text-creme/70 font-mono">{FREEME_STYLE_BASE}</p>
-        <button onClick={() => onCopy(FREEME_STYLE_BASE, "style-bulk")} className="text-xs text-terracota mt-2 hover:text-terracota/80">
-          {copiedField === "style-bulk" ? "Copiado!" : "Copiar estilo base"}
-        </button>
-      </div>
+      <details className="rounded-xl bg-creme/5 p-3 mb-6 cursor-pointer">
+        <summary className="text-xs text-creme/50">Estilo base FreeMe (já incluído acima) — abrir para ver</summary>
+        <p className="text-xs text-creme/70 font-mono mt-2">{FREEME_STYLE_BASE}</p>
+      </details>
 
       <div className="flex flex-col gap-3">
         {allPrompts.map((mj) => (
@@ -525,8 +538,8 @@ function BulkMJ({
                 <span className="text-xs text-terracota font-medium">{mj.postKey}</span>
                 <span className="text-[10px] text-creme/40">slide {mj.slideIndex} · {mj.usage} · {mj.type}</span>
               </div>
-              <button onClick={() => onCopy(mj.prompt, mj.key)} className="text-xs text-terracota hover:text-terracota/80">
-                {copiedField === mj.key ? "Copiado!" : "Copiar"}
+              <button onClick={() => onCopy(mj.full, mj.key)} className="text-xs text-terracota hover:text-terracota/80">
+                {copiedField === mj.key ? "Copiado!" : "Copiar (com estilo)"}
               </button>
             </div>
             <p className="text-xs text-creme/50 italic truncate">{mj.title}</p>
