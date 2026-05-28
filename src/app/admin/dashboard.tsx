@@ -6,8 +6,9 @@ import { type ContentPost } from "@/content/content-types";
 import { getMJPrompts, FREEME_STYLE_BASE } from "@/content/mj-prompts";
 import { ImageDropZone } from "@/components/image-drop-zone";
 
-type MainView = "lista" | "calendario" | "mj" | "captions" | "render";
+type MainView = "studio" | "conteudo" | "imagens" | "slides" | "distribuir";
 type DetailTab = "slides" | "copy" | "imagem";
+type ConteudoSub = "lista" | "calendario" | "captions";
 
 function igCaption(post: ContentPost): string {
   return `${post.caption}\n\n.\n.\n.\n${post.hashtags}`;
@@ -20,7 +21,8 @@ function tiktokCaption(post: ContentPost): string {
 }
 
 export function AdminDashboard() {
-  const [view, setView] = useState<MainView>("lista");
+  const [view, setView] = useState<MainView>("studio");
+  const [conteudoSub, setConteudoSub] = useState<ConteudoSub>("lista");
   const [selected, setSelected] = useState<ContentPost | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("slides");
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -276,14 +278,14 @@ export function AdminDashboard() {
         </button>
       </div>
 
-      {/* VIEW TABS */}
+      {/* PHASE TABS */}
       <div className="flex gap-1 bg-creme/5 rounded-xl p-1 mb-6">
         {([
-          ["lista", "Lista"],
-          ["calendario", "Calendário"],
-          ["mj", "Imagens (Replicate)"],
-          ["captions", "Captions em Bulk"],
-          ["render", "Renderizar (GitHub)"],
+          ["studio", "Studio"],
+          ["conteudo", "1 · Conteúdo"],
+          ["imagens", "2 · Imagens"],
+          ["slides", "3 · Slides"],
+          ["distribuir", "4 · Distribuir"],
         ] as const).map(([k, label]) => (
           <button
             key={k}
@@ -297,17 +299,51 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      {/* FILTERS */}
-      <div className="flex flex-wrap gap-2 mb-6 text-xs">
-        <FilterSelect label="Semana" value={fWeek} onChange={(v) => setFWeek(v === "all" ? "all" : Number(v) as 1 | 2 | 3 | 4)} options={[["all", "Todas"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]]} />
-        <FilterSelect label="Tipo" value={fType} onChange={(v) => setFType(v as "all" | "carousel" | "video")} options={[["all", "Todos"], ["carousel", "Carrossel"], ["video", "Vídeo"]]} />
-        <FilterSelect label="Hora" value={fSlot} onChange={(v) => setFSlot(v as "all" | "morning" | "evening")} options={[["all", "Ambas"], ["morning", "10h"], ["evening", "13h"]]} />
-        <FilterSelect label="Categoria" value={fCategory} onChange={setFCategory} options={categories.map((c) => [c, c === "all" ? "Todas" : c])} />
-        <span className="text-creme/30 self-center ml-2">{filtered.length} / {ALL_POSTS.length} posts</span>
-      </div>
+      {/* STUDIO (overview) */}
+      {view === "studio" && (
+        <StudioPanel
+          posts={ALL_POSTS}
+          onNavigate={(v, sub) => {
+            setView(v);
+            if (sub) setConteudoSub(sub);
+          }}
+        />
+      )}
+
+      {/* FILTERS — só aparecem em Conteúdo/Imagens/Slides/Distribuir */}
+      {view !== "studio" && (
+        <div className="flex flex-wrap gap-2 mb-6 text-xs">
+          <FilterSelect label="Semana" value={fWeek} onChange={(v) => setFWeek(v === "all" ? "all" : Number(v) as 1 | 2 | 3 | 4)} options={[["all", "Todas"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]]} />
+          <FilterSelect label="Tipo" value={fType} onChange={(v) => setFType(v as "all" | "carousel" | "video")} options={[["all", "Todos"], ["carousel", "Carrossel"], ["video", "Vídeo"]]} />
+          <FilterSelect label="Hora" value={fSlot} onChange={(v) => setFSlot(v as "all" | "morning" | "evening")} options={[["all", "Ambas"], ["morning", "10h"], ["evening", "13h"]]} />
+          <FilterSelect label="Categoria" value={fCategory} onChange={setFCategory} options={categories.map((c) => [c, c === "all" ? "Todas" : c])} />
+          <span className="text-creme/30 self-center ml-2">{filtered.length} / {ALL_POSTS.length} posts</span>
+        </div>
+      )}
+
+      {/* CONTEÚDO — sub-tabs Lista | Calendário | Captions */}
+      {view === "conteudo" && (
+        <div className="flex gap-1 bg-creme/5 rounded-xl p-1 mb-4 max-w-md">
+          {([
+            ["lista", "Lista"],
+            ["calendario", "Calendário"],
+            ["captions", "Captions"],
+          ] as const).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setConteudoSub(k)}
+              className={`flex-1 rounded-lg py-1.5 text-xs transition-all ${
+                conteudoSub === k ? "bg-creme/10 text-creme font-medium" : "text-creme/40 hover:text-creme/60"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* LISTA */}
-      {view === "lista" && (
+      {view === "conteudo" && conteudoSub === "lista" && (
         <div className="rounded-2xl border border-creme/10 overflow-hidden">
           <div className="grid grid-cols-[80px_70px_70px_110px_1fr_60px_70px] gap-3 px-4 py-3 border-b border-creme/10 text-[10px] uppercase tracking-wider text-creme/40">
             <span>Post</span>
@@ -344,7 +380,7 @@ export function AdminDashboard() {
       )}
 
       {/* CALENDÁRIO */}
-      {view === "calendario" && (
+      {view === "conteudo" && conteudoSub === "calendario" && (
         <div>
           {[1, 2, 3, 4].map((week) => {
             const weekPosts = filtered.filter((p) => {
@@ -391,17 +427,293 @@ export function AdminDashboard() {
       )}
 
       {/* MJ BULK */}
-      {view === "mj" && (
+      {view === "imagens" && (
         <BulkMJ posts={filtered} copiedField={copiedField} onCopy={copy} onDownload={downloadText} />
       )}
 
       {/* CAPTIONS BULK */}
-      {view === "captions" && (
+      {view === "conteudo" && conteudoSub === "captions" && (
         <BulkCaptions posts={filtered} copiedField={copiedField} onCopy={copy} onDownload={downloadText} />
       )}
 
       {/* RENDER */}
-      {view === "render" && <RenderPanel />}
+      {view === "slides" && <RenderPanel />}
+
+      {view === "distribuir" && <DistribuirPanel posts={filtered} />}
+    </div>
+  );
+}
+
+// ============== STUDIO PANEL — overview com fases ==============
+function StudioPanel({
+  posts,
+  onNavigate,
+}: {
+  posts: ContentPost[];
+  onNavigate: (view: MainView, sub?: ConteudoSub) => void;
+}) {
+  const [diag, setDiag] = useState<{ debug?: unknown; claude?: unknown; replicate?: unknown }>({});
+  const [diagLoading, setDiagLoading] = useState<string | null>(null);
+  const [mjGenerated, setMjGenerated] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setMjGenerated(loadGenerated());
+  }, []);
+
+  async function runDiag(name: "debug" | "claude" | "replicate") {
+    setDiagLoading(name);
+    const url =
+      name === "debug" ? "/api/admin/auth/debug" :
+      name === "claude" ? "/api/admin/test-claude" :
+      "/api/admin/test-replicate";
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      setDiag((d) => ({ ...d, [name]: { httpStatus: res.status, ...data } }));
+    } catch (e) {
+      setDiag((d) => ({ ...d, [name]: { ok: false, error: String(e) } }));
+    } finally {
+      setDiagLoading(null);
+    }
+  }
+
+  // Calcular contadores
+  const totalCarousels = posts.filter((p) => p.type === "carousel").length;
+  const totalVideos = posts.filter((p) => p.type === "video").length;
+  const totalMJ = posts.reduce((sum, p) => sum + getMJPrompts(p.day, p.slot).length, 0);
+  const generatedMJ = Object.keys(mjGenerated).length;
+
+  const diagAllOk = (() => {
+    const d = diag.debug as { ok?: boolean } | undefined;
+    const c = diag.claude as { ok?: boolean } | undefined;
+    const r = diag.replicate as { ok?: boolean } | undefined;
+    return d && c && r && c.ok !== false && r.ok !== false;
+  })();
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* FASE 0 · DIAGNÓSTICO */}
+      <PhaseCard
+        index={0}
+        title="Diagnóstico"
+        status={diagAllOk ? "ok" : Object.keys(diag).length > 0 ? "partial" : "pending"}
+        summary={diagAllOk ? "Tudo verde · pronto para gerar" : "Verifica deploy + envs + providers antes de gastar"}
+      >
+        <div className="flex flex-wrap gap-2 mb-3">
+          <button onClick={() => runDiag("debug")} disabled={diagLoading === "debug"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
+            {diagLoading === "debug" ? "..." : "Envs + SHA"}
+          </button>
+          <button onClick={() => runDiag("claude")} disabled={diagLoading === "claude"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
+            {diagLoading === "claude" ? "..." : "Claude (~$0.0001)"}
+          </button>
+          <button onClick={() => runDiag("replicate")} disabled={diagLoading === "replicate"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
+            {diagLoading === "replicate" ? "..." : "Replicate + Bucket (~$0.06)"}
+          </button>
+        </div>
+        {Object.entries(diag).map(([name, data]) => {
+          const d = data as { ok?: boolean; httpStatus?: number };
+          const isOk = d.ok === true || (d.httpStatus !== undefined && d.httpStatus < 400 && d.ok !== false);
+          return (
+            <details key={name} className="mb-2">
+              <summary className={`text-xs cursor-pointer ${isOk ? "text-salvia" : "text-red-300"}`}>
+                {isOk ? "✓" : "✗"} <strong>{name}</strong>
+              </summary>
+              <pre className={`text-[10px] font-mono leading-relaxed p-3 mt-1 rounded overflow-x-auto ${isOk ? "bg-salvia/5 text-creme/80" : "bg-red-500/10 text-red-200/90"}`}>
+                {JSON.stringify(data, null, 2)}
+              </pre>
+            </details>
+          );
+        })}
+      </PhaseCard>
+
+      {/* FASE 1 · CONTEÚDO */}
+      <PhaseCard
+        index={1}
+        title="Conteúdo"
+        status="ok"
+        summary={`${posts.length} posts · ${totalCarousels} carrosséis · ${totalVideos} vídeos · 30 dias`}
+      >
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => onNavigate("conteudo", "lista")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
+            Lista
+          </button>
+          <button onClick={() => onNavigate("conteudo", "calendario")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
+            Calendário
+          </button>
+          <button onClick={() => onNavigate("conteudo", "captions")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
+            Captions
+          </button>
+        </div>
+      </PhaseCard>
+
+      {/* FASE 2 · IMAGENS MJ */}
+      <PhaseCard
+        index={2}
+        title="Imagens (Claude + Replicate)"
+        status={generatedMJ === 0 ? "pending" : generatedMJ < totalMJ ? "partial" : "ok"}
+        summary={
+          generatedMJ === 0
+            ? `0 / ${totalMJ} geradas · custo estimado ~$${(totalMJ * 0.07).toFixed(2)}`
+            : `${generatedMJ} / ${totalMJ} geradas · ${(totalMJ - generatedMJ)} em falta (~$${((totalMJ - generatedMJ) * 0.07).toFixed(2)})`
+        }
+      >
+        <button onClick={() => onNavigate("imagens")} className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80">
+          {generatedMJ === 0 ? "Começar geração →" : generatedMJ < totalMJ ? "Continuar geração →" : "Ver imagens geradas →"}
+        </button>
+      </PhaseCard>
+
+      {/* FASE 3 · SLIDES PNG */}
+      <PhaseCard
+        index={3}
+        title="Slides PNG (GitHub Actions)"
+        status={generatedMJ < totalMJ ? "locked" : "pending"}
+        summary={generatedMJ < totalMJ ? "Aguarda Fase 2 completa antes de avançar" : "~300 PNGs prontos para renderizar via puppeteer no GH Actions"}
+      >
+        <button
+          onClick={() => onNavigate("slides")}
+          disabled={generatedMJ < totalMJ}
+          className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          Configurar render →
+        </button>
+      </PhaseCard>
+
+      {/* FASE 4 · DISTRIBUIR (METRICOOL) */}
+      <PhaseCard
+        index={4}
+        title="Distribuir (CSV Metricool)"
+        status="pending"
+        summary="Gerar CSV com datas + URLs prontos para importar no Metricool"
+      >
+        <button onClick={() => onNavigate("distribuir")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
+          Configurar CSV →
+        </button>
+      </PhaseCard>
+    </div>
+  );
+}
+
+function PhaseCard({
+  index,
+  title,
+  status,
+  summary,
+  children,
+}: {
+  index: number;
+  title: string;
+  status: "ok" | "partial" | "pending" | "locked";
+  summary: string;
+  children?: React.ReactNode;
+}) {
+  const statusColors: Record<typeof status, string> = {
+    ok: "border-salvia/40 bg-salvia/5",
+    partial: "border-amber-500/40 bg-amber-500/5",
+    pending: "border-creme/15 bg-creme/5",
+    locked: "border-creme/10 bg-carvao/40 opacity-60",
+  };
+  const statusBadge: Record<typeof status, { label: string; cls: string }> = {
+    ok: { label: "✓ Pronto", cls: "bg-salvia/20 text-salvia" },
+    partial: { label: "Em curso", cls: "bg-amber-500/20 text-amber-300" },
+    pending: { label: "Pendente", cls: "bg-creme/10 text-creme/60" },
+    locked: { label: "Bloqueado", cls: "bg-carvao/60 text-creme/40" },
+  };
+  return (
+    <div className={`rounded-2xl border ${statusColors[status]} p-5`}>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-creme/40 mb-1">Fase {index}</p>
+          <h3 className="text-base font-medium text-creme">{title}</h3>
+        </div>
+        <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${statusBadge[status].cls}`}>
+          {statusBadge[status].label}
+        </span>
+      </div>
+      <p className="text-xs text-creme/60 mb-3">{summary}</p>
+      {children}
+    </div>
+  );
+}
+
+// ============== DISTRIBUIR PANEL (Metricool CSV) ==============
+function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
+  const [startDate, setStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  });
+
+  function buildAndDownload() {
+    // Header Metricool compatível
+    const header = [
+      "Date", "Time", "Draft",
+      "Instagram", "Instagram Post Type", "Instagram Show Reel On Feed",
+      "TikTok", "TikTok Post Privacy",
+      "Text",
+      "Picture Url 1", "Picture Url 2", "Picture Url 3", "Picture Url 4", "Picture Url 5",
+    ];
+    const supabaseUrl = "https://" + (typeof window !== "undefined" ? window.location.hostname : "");
+
+    const rows = posts.map((p) => {
+      const startD = new Date(startDate);
+      startD.setDate(startD.getDate() + (p.day - 1));
+      const date = startD.toISOString().split("T")[0];
+      const time = `${p.time}:00`;
+      const text = `${p.caption}\n\n${p.hashtags}`;
+      const igType = p.type === "carousel" ? "CAROUSEL" : "REEL";
+      // URLs de slides (a serem geradas na Fase 3)
+      const slidePngs = Array.from({ length: Math.min(p.slides.length, 5) }, (_, i) =>
+        `${supabaseUrl.replace("admin", "")}storage/v1/object/public/freeme-assets/slides/D${p.day}-${p.slot}-${String(i).padStart(2, "0")}.png`
+      );
+      const cells = [
+        date, time, "FALSE",
+        "TRUE", igType, p.type === "video" ? "TRUE" : "FALSE",
+        "TRUE", "PUBLIC_TO_EVERYONE",
+        `"${text.replace(/"/g, '""')}"`,
+        ...slidePngs,
+        ...Array(5 - slidePngs.length).fill(""),
+      ];
+      return cells.join(",");
+    });
+    const csv = [header.join(","), ...rows].join("\r\n") + "\r\n";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `freeme-metricool-${startDate}.csv`;
+    a.click();
+  }
+
+  return (
+    <div className="max-w-2xl">
+      <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 mb-6">
+        <p className="text-sm text-amber-200 font-medium mb-1">CSV Metricool</p>
+        <p className="text-xs text-amber-100/70 leading-relaxed">
+          Gera um CSV no formato Metricool com data + hora + caption + URLs das imagens (que vão ficar no Storage após a Fase 3).
+          Importa em Metricool → Planning → Import CSV.
+        </p>
+      </div>
+
+      <label className="flex flex-col gap-1 mb-4">
+        <span className="text-xs text-creme/40 uppercase tracking-wider">Data de início (Dia 1)</span>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="bg-creme/5 rounded-lg px-4 py-3 text-creme outline-none cursor-pointer"
+        />
+        <span className="text-xs text-creme/40 mt-1">D30 = {new Date(new Date(startDate).getTime() + 29 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}</span>
+      </label>
+
+      <button
+        onClick={buildAndDownload}
+        className="rounded-full bg-terracota px-6 py-3 text-sm font-medium text-creme hover:bg-terracota/80"
+      >
+        Download CSV ({posts.length} posts)
+      </button>
+
+      <p className="text-xs text-creme/40 mt-4">
+        ⚠ As URLs dos slides ainda têm de ser geradas na Fase 3 antes deste CSV servir para publicar.
+      </p>
     </div>
   );
 }
@@ -601,31 +913,11 @@ function BulkMJ({
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  const [diagOpen, setDiagOpen] = useState(true);
-  const [diagResults, setDiagResults] = useState<Record<string, unknown>>({});
-  const [diagLoading, setDiagLoading] = useState<string | null>(null);
 
   useEffect(() => {
     setGenerated(loadGenerated());
     setClaudePrompts(loadClaudePrompts());
   }, []);
-
-  async function runDiag(name: "debug" | "claude" | "replicate") {
-    setDiagLoading(name);
-    const url =
-      name === "debug" ? "/api/admin/auth/debug" :
-      name === "claude" ? "/api/admin/test-claude" :
-      "/api/admin/test-replicate";
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      setDiagResults((r) => ({ ...r, [name]: { httpStatus: res.status, ...data } }));
-    } catch (e) {
-      setDiagResults((r) => ({ ...r, [name]: { ok: false, error: String(e) } }));
-    } finally {
-      setDiagLoading(null);
-    }
-  }
 
   const allPrompts = useMemo(() => {
     return posts.flatMap((p) =>
@@ -745,43 +1037,6 @@ function BulkMJ({
 
   return (
     <div>
-      {/* SECCAO 0 · DIAGNOSTICO (padrao do SyncHim) */}
-      <details open={diagOpen} onToggle={(e) => setDiagOpen((e.target as HTMLDetailsElement).open)} className="rounded-xl bg-creme/5 border border-creme/10 p-4 mb-4">
-        <summary className="text-sm text-creme font-medium cursor-pointer">
-          Passo 0 · Diagnóstico (verificar que tudo está vivo antes de gerar)
-        </summary>
-        <div className="mt-3">
-          <p className="text-xs text-creme/60 mb-3">
-            Antes de gastar dinheiro em bulk: confirma deploy + provider. Cada teste custa $0 ou ~$0.04.
-          </p>
-          <div className="flex gap-2 flex-wrap mb-3">
-            <button onClick={() => runDiag("debug")} disabled={diagLoading === "debug"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
-              {diagLoading === "debug" ? "..." : "Ver envs + SHA actual"}
-            </button>
-            <button onClick={() => runDiag("claude")} disabled={diagLoading === "claude"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
-              {diagLoading === "claude" ? "..." : "Testar Claude (~$0.0001)"}
-            </button>
-            <button onClick={() => runDiag("replicate")} disabled={diagLoading === "replicate"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
-              {diagLoading === "replicate" ? "..." : "Testar Replicate + Bucket (~$0.06)"}
-            </button>
-          </div>
-          {Object.entries(diagResults).map(([name, data]) => {
-            const d = data as { ok?: boolean; httpStatus?: number };
-            const isOk = d.ok === true || (d.httpStatus !== undefined && d.httpStatus < 400 && d.ok !== false);
-            return (
-              <div key={name} className="mb-2">
-                <p className={`text-xs mb-1 ${isOk ? "text-salvia" : "text-red-300"}`}>
-                  {isOk ? "✓" : "✗"} <strong>{name}</strong>
-                </p>
-                <pre className={`text-[10px] font-mono leading-relaxed p-3 rounded overflow-x-auto ${isOk ? "bg-salvia/5 text-creme/80" : "bg-red-500/10 text-red-200/90"}`}>
-                  {JSON.stringify(data, null, 2)}
-                </pre>
-              </div>
-            );
-          })}
-        </div>
-      </details>
-
       <div className="rounded-xl bg-salvia/15 border border-salvia/30 p-4 mb-4">
         <p className="text-sm text-creme font-medium mb-2">Gerar imagens automaticamente (Claude → Replicate Flux 1.1 Pro Ultra)</p>
         <p className="text-xs text-creme/70 leading-relaxed mb-3">
