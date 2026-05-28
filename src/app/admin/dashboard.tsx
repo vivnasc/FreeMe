@@ -601,11 +601,31 @@ function BulkMJ({
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [diagOpen, setDiagOpen] = useState(true);
+  const [diagResults, setDiagResults] = useState<Record<string, unknown>>({});
+  const [diagLoading, setDiagLoading] = useState<string | null>(null);
 
   useEffect(() => {
     setGenerated(loadGenerated());
     setClaudePrompts(loadClaudePrompts());
   }, []);
+
+  async function runDiag(name: "debug" | "claude" | "replicate") {
+    setDiagLoading(name);
+    const url =
+      name === "debug" ? "/api/admin/auth/debug" :
+      name === "claude" ? "/api/admin/test-claude" :
+      "/api/admin/test-replicate";
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      setDiagResults((r) => ({ ...r, [name]: { httpStatus: res.status, ...data } }));
+    } catch (e) {
+      setDiagResults((r) => ({ ...r, [name]: { ok: false, error: String(e) } }));
+    } finally {
+      setDiagLoading(null);
+    }
+  }
 
   const allPrompts = useMemo(() => {
     return posts.flatMap((p) =>
@@ -725,6 +745,43 @@ function BulkMJ({
 
   return (
     <div>
+      {/* SECCAO 0 · DIAGNOSTICO (padrao do SyncHim) */}
+      <details open={diagOpen} onToggle={(e) => setDiagOpen((e.target as HTMLDetailsElement).open)} className="rounded-xl bg-creme/5 border border-creme/10 p-4 mb-4">
+        <summary className="text-sm text-creme font-medium cursor-pointer">
+          Passo 0 · Diagnóstico (verificar que tudo está vivo antes de gerar)
+        </summary>
+        <div className="mt-3">
+          <p className="text-xs text-creme/60 mb-3">
+            Antes de gastar dinheiro em bulk: confirma deploy + provider. Cada teste custa $0 ou ~$0.04.
+          </p>
+          <div className="flex gap-2 flex-wrap mb-3">
+            <button onClick={() => runDiag("debug")} disabled={diagLoading === "debug"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
+              {diagLoading === "debug" ? "..." : "Ver envs + SHA actual"}
+            </button>
+            <button onClick={() => runDiag("claude")} disabled={diagLoading === "claude"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
+              {diagLoading === "claude" ? "..." : "Testar Claude (~$0.0001)"}
+            </button>
+            <button onClick={() => runDiag("replicate")} disabled={diagLoading === "replicate"} className="text-xs rounded-full bg-carvao/60 px-4 py-2 text-creme hover:bg-carvao/80 disabled:opacity-50">
+              {diagLoading === "replicate" ? "..." : "Testar Replicate + Bucket (~$0.06)"}
+            </button>
+          </div>
+          {Object.entries(diagResults).map(([name, data]) => {
+            const d = data as { ok?: boolean; httpStatus?: number };
+            const isOk = d.ok === true || (d.httpStatus !== undefined && d.httpStatus < 400 && d.ok !== false);
+            return (
+              <div key={name} className="mb-2">
+                <p className={`text-xs mb-1 ${isOk ? "text-salvia" : "text-red-300"}`}>
+                  {isOk ? "✓" : "✗"} <strong>{name}</strong>
+                </p>
+                <pre className={`text-[10px] font-mono leading-relaxed p-3 rounded overflow-x-auto ${isOk ? "bg-salvia/5 text-creme/80" : "bg-red-500/10 text-red-200/90"}`}>
+                  {JSON.stringify(data, null, 2)}
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      </details>
+
       <div className="rounded-xl bg-salvia/15 border border-salvia/30 p-4 mb-4">
         <p className="text-sm text-creme font-medium mb-2">Gerar imagens automaticamente (Claude → Replicate Flux 1.1 Pro Ultra)</p>
         <p className="text-xs text-creme/70 leading-relaxed mb-3">
