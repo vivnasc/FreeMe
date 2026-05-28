@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "produce:dump": "tsx tools/produce/dump-posts.ts",
+    "produce:render": "node tools/produce/render-slides.mjs"
   },
   "dependencies": {
     "@paypal/react-paypal-js": "^9.2.0",
@@ -26,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

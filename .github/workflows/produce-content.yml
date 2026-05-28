@@ -1,0 +1,50 @@
+name: Produzir conteudo FreeMe
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Que posts processar"
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - slides-only
+          - videos-only
+          - semana-1
+          - semana-2
+          - semana-3
+          - semana-4
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Dump posts to JSON
+        run: npm run produce:dump
+
+      - name: Render slides to PNG + upload to Supabase
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          FREEME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FREEME_SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run produce:render -- --scope=${{ inputs.scope }} --concurrency=4
+
+      - name: Upload posts.json as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: posts-snapshot
+          path: tools/produce/posts.json
+          retention-days: 7

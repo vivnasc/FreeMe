@@ -6,7 +6,7 @@ import { type ContentPost } from "@/content/content-types";
 import { getMJPrompts, FREEME_STYLE_BASE } from "@/content/mj-prompts";
 import { ImageDropZone } from "@/components/image-drop-zone";
 
-type MainView = "lista" | "calendario" | "mj" | "captions";
+type MainView = "lista" | "calendario" | "mj" | "captions" | "render";
 type DetailTab = "slides" | "copy" | "imagem";
 
 function igCaption(post: ContentPost): string {
@@ -281,8 +281,9 @@ export function AdminDashboard() {
         {([
           ["lista", "Lista"],
           ["calendario", "Calendário"],
-          ["mj", "MJ em Bulk"],
+          ["mj", "Imagens (Replicate)"],
           ["captions", "Captions em Bulk"],
+          ["render", "Renderizar (GitHub)"],
         ] as const).map(([k, label]) => (
           <button
             key={k}
@@ -397,6 +398,92 @@ export function AdminDashboard() {
       {/* CAPTIONS BULK */}
       {view === "captions" && (
         <BulkCaptions posts={filtered} copiedField={copiedField} onCopy={copy} onDownload={downloadText} />
+      )}
+
+      {/* RENDER */}
+      {view === "render" && <RenderPanel />}
+    </div>
+  );
+}
+
+function RenderPanel() {
+  const [scope, setScope] = useState<"all" | "slides-only" | "videos-only" | "semana-1" | "semana-2" | "semana-3" | "semana-4">("all");
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<{ runsUrl?: string; error?: string } | null>(null);
+
+  async function trigger() {
+    setRunning(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/trigger-render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResult({ error: data.error || `HTTP ${res.status}` });
+      } else {
+        setResult({ runsUrl: data.runsUrl });
+      }
+    } catch (e) {
+      setResult({ error: String(e) });
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl">
+      <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 mb-6">
+        <p className="text-sm text-amber-200 font-medium mb-1">Render de slides via GitHub Actions</p>
+        <p className="text-xs text-amber-100/80 leading-relaxed">
+          Dispara um workflow no GitHub que: (1) lê os 60 posts, (2) renderiza cada slide como PNG com puppeteer (usando as fotos MJ já em Storage),
+          (3) faz upload para Supabase em <code className="bg-carvao/40 px-1 rounded">course-assets/freeme-content/slides/D&#123;day&#125;-&#123;slot&#125;-&#123;idx&#125;.png</code>.
+        </p>
+        <p className="text-xs text-amber-100/60 mt-2">
+          Tempo estimado: ~15-30 min para tudo. Vais ter link directo para acompanhar.
+        </p>
+      </div>
+
+      <label className="flex flex-col gap-1 mb-4">
+        <span className="text-xs text-creme/40 uppercase tracking-wider">Scope</span>
+        <select
+          value={scope}
+          onChange={(e) => setScope(e.target.value as typeof scope)}
+          disabled={running}
+          className="bg-creme/5 rounded-lg px-4 py-3 text-creme outline-none cursor-pointer"
+        >
+          <option value="all" className="bg-carvao">Tudo (60 posts)</option>
+          <option value="slides-only" className="bg-carvao">Só carrosséis (35)</option>
+          <option value="videos-only" className="bg-carvao">Só vídeos (26)</option>
+          <option value="semana-1" className="bg-carvao">Semana 1</option>
+          <option value="semana-2" className="bg-carvao">Semana 2</option>
+          <option value="semana-3" className="bg-carvao">Semana 3</option>
+          <option value="semana-4" className="bg-carvao">Semana 4</option>
+        </select>
+      </label>
+
+      <button
+        onClick={trigger}
+        disabled={running}
+        className="rounded-full bg-terracota px-6 py-3 text-sm font-medium text-creme hover:bg-terracota/80 disabled:opacity-50"
+      >
+        {running ? "A disparar..." : "Disparar render"}
+      </button>
+
+      {result?.runsUrl && (
+        <div className="mt-6 rounded-xl bg-salvia/10 border border-salvia/20 p-4">
+          <p className="text-sm text-salvia mb-2">Workflow disparado.</p>
+          <a href={result.runsUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-terracota underline">
+            Acompanhar no GitHub →
+          </a>
+        </div>
+      )}
+      {result?.error && (
+        <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4">
+          <p className="text-sm text-red-300">{result.error}</p>
+        </div>
       )}
     </div>
   );
