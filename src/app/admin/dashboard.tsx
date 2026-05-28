@@ -554,6 +554,7 @@ function CaptionBlock({
 }
 
 const MJ_STORAGE_KEY = "freeme-mj-generated";
+const MJ_PROMPTS_STORAGE_KEY = "freeme-mj-claude-prompts";
 
 function loadGenerated(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -569,6 +570,20 @@ function saveGenerated(map: Record<string, string>) {
   localStorage.setItem(MJ_STORAGE_KEY, JSON.stringify(map));
 }
 
+function loadClaudePrompts(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(MJ_PROMPTS_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveClaudePrompts(map: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(MJ_PROMPTS_STORAGE_KEY, JSON.stringify(map));
+}
+
 function BulkMJ({
   posts,
   copiedField,
@@ -581,6 +596,7 @@ function BulkMJ({
   onDownload: (t: string, name: string) => void;
 }) {
   const [generated, setGenerated] = useState<Record<string, string>>({});
+  const [claudePrompts, setClaudePrompts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -588,6 +604,7 @@ function BulkMJ({
 
   useEffect(() => {
     setGenerated(loadGenerated());
+    setClaudePrompts(loadClaudePrompts());
   }, []);
 
   const allPrompts = useMemo(() => {
@@ -607,23 +624,41 @@ function BulkMJ({
 
   type Item = (typeof allPrompts)[number];
 
-  async function generateBatch(items: Item[]): Promise<{ urls: Record<string, string>; errors: Record<string, string> }> {
+  async function generateBatch(items: Item[]): Promise<{
+    urls: Record<string, string>;
+    prompts: Record<string, string>;
+    errors: Record<string, string>;
+  }> {
+    // Parse key "D{day}-{slot}-{idx}" para enviar para a API
+    const apiItems = items.map((i) => {
+      const m = /^D(\d+)-(morning|evening)-(\d+)$/.exec(i.key);
+      if (!m) throw new Error(`Key invalida: ${i.key}`);
+      return {
+        key: i.key,
+        day: Number(m[1]),
+        slot: m[2] as "morning" | "evening",
+        slideIndex: Number(m[3]),
+      };
+    });
+
     const res = await fetch("/api/admin/generate-mj", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: items.map((i) => ({ key: i.key, prompt: i.prompt, type: i.type })),
-      }),
+      body: JSON.stringify({ items: apiItems }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = (await res.json()) as { results: { key: string; url: string | null; error: string | null }[] };
+    const data = (await res.json()) as {
+      results: { key: string; url: string | null; prompt: string | null; rationale: string | null; error: string | null }[];
+    };
     const urls: Record<string, string> = {};
+    const prompts: Record<string, string> = {};
     const errs: Record<string, string> = {};
     for (const r of data.results) {
       if (r.url) urls[r.key] = r.url;
+      if (r.prompt) prompts[r.key] = r.prompt;
       if (r.error) errs[r.key] = r.error;
     }
-    return { urls: urls, errors: errs };
+    return { urls, prompts, errors: errs };
   }
 
   async function runGeneration(items: Item[]) {
@@ -632,17 +667,21 @@ function BulkMJ({
     setProgress({ done: 0, total: items.length });
 
     const next = { ...generated };
+    const nextPrompts = { ...claudePrompts };
     const nextErrors: Record<string, string> = {};
     const BATCH = 3;
 
     for (let i = 0; i < items.length; i += BATCH) {
       const chunk = items.slice(i, i + BATCH);
       try {
-        const { urls, errors: errs } = await generateBatch(chunk);
+        const { urls, prompts, errors: errs } = await generateBatch(chunk);
         Object.assign(next, urls);
+        Object.assign(nextPrompts, prompts);
         Object.assign(nextErrors, errs);
         setGenerated({ ...next });
+        setClaudePrompts({ ...nextPrompts });
         saveGenerated(next);
+        saveClaudePrompts(nextPrompts);
         setErrors({ ...nextErrors });
       } catch (e) {
         for (const c of chunk) nextErrors[c.key] = String(e);
@@ -667,14 +706,16 @@ function BulkMJ({
       alert("Todos os prompts já foram gerados. Apaga do localStorage se quiseres regerar.");
       return;
     }
-    if (!confirm(`Gerar ${missing.length} imagem(s) via Replicate Flux 1.1 Pro Ultra? Custo estimado: ~$${(missing.length * 0.06).toFixed(2)}`)) return;
+    if (!confirm(`Gerar ${missing.length} imagem(s) (Claude prompt + Replicate Flux 1.1 Pro Ultra)? Custo estimado: ~$${(missing.length * 0.07).toFixed(2)}`)) return;
     runGeneration(missing);
   }
 
   function clearAll() {
-    if (!confirm("Apagar referências locais às imagens geradas? (Não apaga do Supabase Storage, só do teu navegador)")) return;
+    if (!confirm("Apagar referências locais às imagens e prompts gerados? (Não apaga do Supabase Storage, só do teu navegador)")) return;
     setGenerated({});
+    setClaudePrompts({});
     saveGenerated({});
+    saveClaudePrompts({});
   }
 
   // Versao "pura": 1 prompt por linha, estilo ja incluido, pronto a colar
@@ -685,9 +726,9 @@ function BulkMJ({
   return (
     <div>
       <div className="rounded-xl bg-salvia/15 border border-salvia/30 p-4 mb-4">
-        <p className="text-sm text-creme font-medium mb-2">Gerar imagens automaticamente (Replicate Flux 1.1 Pro Ultra)</p>
+        <p className="text-sm text-creme font-medium mb-2">Gerar imagens automaticamente (Claude → Replicate Flux 1.1 Pro Ultra)</p>
         <p className="text-xs text-creme/70 leading-relaxed mb-3">
-          Tudo automático: o servidor chama o Replicate, gera as imagens com a tua key, faz upload para Supabase Storage. Zero copy-paste.
+          Para cada slide: Claude lê a mensagem e gera um prompt específico (sem close-up de caras, pessoas em interacção real, imagem ecoa a mensagem). Depois Flux 1.1 Pro Ultra gera a foto. Custo: ~$0.07 por imagem (Claude + Replicate).
         </p>
         <div className="flex gap-2 flex-wrap items-center">
           <button
@@ -704,7 +745,7 @@ function BulkMJ({
           >
             {running && progress && progress.total > 3
               ? `A gerar ${progress.done}/${progress.total}...`
-              : `Produzir todas (${allPrompts.length - Object.keys(generated).length} em falta · ~$${((allPrompts.length - Object.keys(generated).length) * 0.06).toFixed(2)})`}
+              : `Produzir todas (${allPrompts.length - Object.keys(generated).length} em falta · ~$${((allPrompts.length - Object.keys(generated).length) * 0.07).toFixed(2)})`}
           </button>
           {Object.keys(generated).length > 0 && (
             <button onClick={clearAll} disabled={running} className="text-xs rounded-full bg-creme/5 px-3 py-2 text-creme/50 hover:bg-creme/10">
@@ -847,11 +888,20 @@ function BulkMJ({
                             slide {mj.slideIndex} · {mj.usage}
                             {url && <span className="ml-2 text-salvia">✓</span>}
                           </span>
-                          <button onClick={() => onCopy(mj.full, mj.key)} className="text-[10px] text-terracota hover:text-terracota/80">
-                            {copiedField === mj.key ? "✓" : "copiar"}
-                          </button>
+                          {claudePrompts[mj.key] && (
+                            <button onClick={() => onCopy(claudePrompts[mj.key], mj.key)} className="text-[10px] text-terracota hover:text-terracota/80">
+                              {copiedField === mj.key ? "✓" : "copiar prompt"}
+                            </button>
+                          )}
                         </div>
-                        <p className="text-[11px] text-creme/70 font-mono leading-relaxed">{mj.prompt}</p>
+                        {claudePrompts[mj.key] ? (
+                          <>
+                            <p className="text-[10px] uppercase tracking-wider text-salvia/70">Prompt Claude (usado)</p>
+                            <p className="text-[11px] text-creme/85 font-mono leading-relaxed bg-carvao/60 rounded p-2">{claudePrompts[mj.key]}</p>
+                          </>
+                        ) : (
+                          <p className="text-[10px] text-creme/40 italic">Ainda nao gerada — prompt sera criado pelo Claude no momento</p>
+                        )}
                         {err && <p className="text-[10px] text-red-300/70 italic">{err}</p>}
                       </div>
                     );
