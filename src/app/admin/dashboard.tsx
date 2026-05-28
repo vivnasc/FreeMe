@@ -683,53 +683,89 @@ function BulkMJ({
 
   return (
     <div>
-      <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 mb-4">
-        <p className="text-sm text-amber-200 font-medium mb-1">Como usar no Midjourney</p>
-        <p className="text-xs text-amber-100/70 leading-relaxed">
-          1. Clica em <strong>Copiar prompts puros</strong> (já levam o estilo FreeMe incluído).<br />
-          2. Cola no Discord uma linha de cada vez, com <code className="bg-carvao/40 px-1 rounded">/imagine</code> à frente.<br />
-          3. Para teres referência (que prompt = que post), usa o <strong>Download etiquetado</strong> — esse não cola no MJ, é só o teu mapa.
+      <div className="rounded-xl bg-salvia/15 border border-salvia/30 p-4 mb-4">
+        <p className="text-sm text-creme font-medium mb-2">Gerar imagens automaticamente (Replicate Flux 1.1 Pro Ultra)</p>
+        <p className="text-xs text-creme/70 leading-relaxed mb-3">
+          Tudo automático: o servidor chama o Replicate, gera as imagens com a tua key, faz upload para Supabase Storage. Zero copy-paste.
         </p>
+        <div className="flex gap-2 flex-wrap items-center">
+          <button
+            onClick={runTest3}
+            disabled={running}
+            className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80 disabled:opacity-50"
+          >
+            {running && progress?.total === 3 ? `A gerar ${progress.done}/3...` : "Testar 3 amostras (~$0.18)"}
+          </button>
+          <button
+            onClick={runAllMissing}
+            disabled={running}
+            className="text-xs rounded-full bg-salvia px-4 py-2 text-creme hover:bg-salvia/80 disabled:opacity-50"
+          >
+            {running && progress && progress.total > 3
+              ? `A gerar ${progress.done}/${progress.total}...`
+              : `Produzir todas (${allPrompts.length - Object.keys(generated).length} em falta · ~$${((allPrompts.length - Object.keys(generated).length) * 0.06).toFixed(2)})`}
+          </button>
+          {Object.keys(generated).length > 0 && (
+            <button onClick={clearAll} disabled={running} className="text-xs rounded-full bg-creme/5 px-3 py-2 text-creme/50 hover:bg-creme/10">
+              Limpar local ({Object.keys(generated).length})
+            </button>
+          )}
+          <span className="text-xs text-creme/40 ml-2">
+            {Object.keys(generated).length}/{allPrompts.length} geradas
+            {Object.keys(errors).length > 0 && <span className="text-red-400/70"> · {Object.keys(errors).length} erros</span>}
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <p className="text-sm text-creme/60">
-          {allPrompts.length} prompts · estilo FreeMe já incluído em cada linha.
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={() => onCopy(pure, "mj-pure")} className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80">
+      <details className="rounded-xl bg-creme/5 p-3 mb-4 cursor-pointer">
+        <summary className="text-xs text-creme/50">Alternativa manual: copiar prompts para Midjourney/outro — abrir</summary>
+        <div className="mt-3 flex gap-2 flex-wrap">
+          <button onClick={() => onCopy(pure, "mj-pure")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
             {copiedField === "mj-pure" ? "Copiado!" : `Copiar prompts puros (${allPrompts.length})`}
           </button>
-          <button onClick={() => onDownload(pure, "freeme-mj-prompts-puros.txt")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
+          <button onClick={() => onDownload(pure, "freeme-mj-prompts-puros.txt")} className="text-xs rounded-full bg-creme/5 px-4 py-2 text-creme/70 hover:bg-creme/10">
             Download puros
           </button>
           <button onClick={() => onDownload(labeled, "freeme-mj-prompts-referencia.txt")} className="text-xs rounded-full bg-creme/5 px-4 py-2 text-creme/70 hover:bg-creme/10">
             Download etiquetado (ref)
           </button>
         </div>
-      </div>
+      </details>
 
       <details className="rounded-xl bg-creme/5 p-3 mb-6 cursor-pointer">
-        <summary className="text-xs text-creme/50">Estilo base FreeMe (já incluído acima) — abrir para ver</summary>
+        <summary className="text-xs text-creme/50">Estilo base FreeMe (já incluído em cada prompt)</summary>
         <p className="text-xs text-creme/70 font-mono mt-2">{FREEME_STYLE_BASE}</p>
       </details>
 
       <div className="flex flex-col gap-3">
-        {allPrompts.map((mj) => (
-          <div key={mj.key} className="rounded-xl bg-creme/5 p-4 flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-terracota font-medium">{mj.postKey}</span>
-                <span className="text-[10px] text-creme/40">slide {mj.slideIndex} · {mj.usage} · {mj.type}</span>
+        {allPrompts.map((mj) => {
+          const imgUrl = generated[mj.key];
+          const err = errors[mj.key];
+          return (
+            <div key={mj.key} className="rounded-xl bg-creme/5 p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-terracota font-medium">{mj.postKey}</span>
+                  <span className="text-[10px] text-creme/40">slide {mj.slideIndex} · {mj.usage} · {mj.type}</span>
+                  {imgUrl && <span className="text-[10px] px-1.5 py-0.5 rounded bg-salvia/20 text-salvia">✓ gerada</span>}
+                  {err && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">erro</span>}
+                </div>
+                <button onClick={() => onCopy(mj.full, mj.key)} className="text-xs text-terracota hover:text-terracota/80">
+                  {copiedField === mj.key ? "Copiado!" : "Copiar (com estilo)"}
+                </button>
               </div>
-              <button onClick={() => onCopy(mj.full, mj.key)} className="text-xs text-terracota hover:text-terracota/80">
-                {copiedField === mj.key ? "Copiado!" : "Copiar (com estilo)"}
-              </button>
+              <p className="text-xs text-creme/50 italic truncate">{mj.title}</p>
+              <div className="flex gap-3 items-start">
+                {imgUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imgUrl} alt="" className="w-24 h-30 object-cover rounded-lg flex-shrink-0" style={{ aspectRatio: mj.type === "carousel" ? "4/5" : "9/16" }} />
+                )}
+                <p className="text-sm text-creme/85 font-mono leading-relaxed">{mj.prompt}</p>
+              </div>
+              {err && <p className="text-xs text-red-300/80 italic">{err}</p>}
             </div>
-            <p className="text-xs text-creme/50 italic truncate">{mj.title}</p>
-            <p className="text-sm text-creme/85 font-mono leading-relaxed">{mj.prompt}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
