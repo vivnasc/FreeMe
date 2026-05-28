@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin/auth";
-import { getAdminSupabase } from "@/lib/admin/supabase-admin";
+import { getAdminSupabase, ensureBucket } from "@/lib/admin/supabase-admin";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "";
+const BUCKET = "freeme-assets";
 
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
@@ -48,11 +49,13 @@ export async function POST(request: Request) {
   }
 
   const audioBuffer = Buffer.from(await res.arrayBuffer());
-  const storagePath = `freeme-audio/${blocker}/${filename}.mp3`;
+  const storagePath = `audio/${blocker}/${filename}.mp3`;
+
+  await ensureBucket(BUCKET, { public: true });
 
   const supabase = getAdminSupabase();
   const { error } = await supabase.storage
-    .from("course-assets")
+    .from(BUCKET)
     .upload(storagePath, audioBuffer, {
       contentType: "audio/mpeg",
       upsert: true,
@@ -63,7 +66,7 @@ export async function POST(request: Request) {
   }
 
   const { data: urlData } = supabase.storage
-    .from("course-assets")
+    .from(BUCKET)
     .getPublicUrl(storagePath);
 
   return NextResponse.json({

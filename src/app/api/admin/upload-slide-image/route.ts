@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin/auth";
-import { getAdminSupabase } from "@/lib/admin/supabase-admin";
+import { getAdminSupabase, ensureBucket } from "@/lib/admin/supabase-admin";
+
+const BUCKET = "freeme-assets";
 
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
@@ -15,14 +17,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "file and slideId required" }, { status: 400 });
   }
 
+  await ensureBucket(BUCKET, { public: true });
+
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const buffer = Buffer.from(await file.arrayBuffer());
-  const storagePath = `freeme-content/slides/${slideId}.${ext}`;
+  const storagePath = `slides-manual/${slideId}.${ext}`;
 
   const supabase = getAdminSupabase();
 
   const { error } = await supabase.storage
-    .from("course-assets")
+    .from(BUCKET)
     .upload(storagePath, buffer, {
       contentType: file.type,
       upsert: true,
@@ -33,7 +37,7 @@ export async function POST(request: Request) {
   }
 
   const { data: urlData } = supabase.storage
-    .from("course-assets")
+    .from(BUCKET)
     .getPublicUrl(storagePath);
 
   return NextResponse.json({ url: urlData.publicUrl, slideId });

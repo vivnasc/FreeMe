@@ -37,7 +37,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const BUCKET = "course-assets";
+const BUCKET = "freeme-assets";
 
 // Dynamically import the TypeScript content using tsx-style resolution would require esbuild.
 // Simpler: dist-import after running the Next build OR re-implement loader.
@@ -49,6 +49,17 @@ async function loadPosts() {
   const jsonUrl = pathToFileURL(path.resolve("tools/produce/posts.json"));
   const mod = await import(jsonUrl.href, { with: { type: "json" } });
   return mod.default;
+}
+
+async function ensureBucket() {
+  const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
+  if (listErr) throw new Error(`listBuckets: ${listErr.message}`);
+  if (buckets?.some((b) => b.name === BUCKET)) return;
+  const { error } = await supabase.storage.createBucket(BUCKET, { public: true });
+  if (error && !/already exists/i.test(error.message)) {
+    throw new Error(`createBucket ${BUCKET}: ${error.message}`);
+  }
+  console.log(`Created bucket ${BUCKET}`);
 }
 
 function filterByScope(posts, scope) {
@@ -72,7 +83,7 @@ function filterByScope(posts, scope) {
 }
 
 async function getMJPhotoUrl(day, slot, slideIdx) {
-  const path = `freeme-content/mj/D${day}-${slot}-${slideIdx}.jpg`;
+  const path = `mj/D${day}-${slot}-${slideIdx}.jpg`;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   // Verify it exists
   const headRes = await fetch(data.publicUrl, { method: "HEAD" });
@@ -113,7 +124,7 @@ async function renderOne(browser, post, slide, slideIdx, photoSlideIdxs) {
   const buffer = await page.screenshot({ type: "png", omitBackground: false });
   await page.close();
 
-  const outPath = `freeme-content/slides/D${post.day}-${post.slot}-${String(slideIdx).padStart(2, "0")}.png`;
+  const outPath = `slides/D${post.day}-${post.slot}-${String(slideIdx).padStart(2, "0")}.png`;
   const url = await uploadSlide(buffer, outPath);
   return { post: `D${post.day}-${post.slot}`, slide: slideIdx, url };
 }
@@ -139,6 +150,7 @@ async function processWithConcurrency(items, limit, worker) {
 
 async function main() {
   console.log(`Scope: ${SCOPE}, concurrency: ${CONCURRENCY}`);
+  await ensureBucket();
   const allPosts = await loadPosts();
   const posts = filterByScope(allPosts, SCOPE);
   console.log(`Rendering slides for ${posts.length}/${allPosts.length} posts`);

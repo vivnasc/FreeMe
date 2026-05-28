@@ -439,7 +439,7 @@ function RenderPanel() {
         <p className="text-sm text-amber-200 font-medium mb-1">Render de slides via GitHub Actions</p>
         <p className="text-xs text-amber-100/80 leading-relaxed">
           Dispara um workflow no GitHub que: (1) lê os 60 posts, (2) renderiza cada slide como PNG com puppeteer (usando as fotos MJ já em Storage),
-          (3) faz upload para Supabase em <code className="bg-carvao/40 px-1 rounded">course-assets/freeme-content/slides/D&#123;day&#125;-&#123;slot&#125;-&#123;idx&#125;.png</code>.
+          (3) faz upload para Supabase em <code className="bg-carvao/40 px-1 rounded">freeme-assets/slides/D&#123;day&#125;-&#123;slot&#125;-&#123;idx&#125;.png</code>.
         </p>
         <p className="text-xs text-amber-100/60 mt-2">
           Tempo estimado: ~15-30 min para tudo. Vais ter link directo para acompanhar.

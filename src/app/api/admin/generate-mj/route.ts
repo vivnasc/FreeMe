@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin/auth";
-import { getAdminSupabase } from "@/lib/admin/supabase-admin";
+import { getAdminSupabase, ensureBucket } from "@/lib/admin/supabase-admin";
 import { generateImage, type AspectRatio } from "@/lib/admin/replicate";
 import { generateImagePrompt } from "@/lib/admin/claude";
 import { ALL_POSTS } from "@/content/content-calendar";
 import { getMJPrompts } from "@/content/mj-prompts";
 
 export const maxDuration = 60;
+const BUCKET = "freeme-assets";
 
 interface GenerateItem {
   key: string; // "D{day}-{slot}-{slideIndex}"
@@ -38,6 +39,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = getAdminSupabase();
+
+  try {
+    await ensureBucket(BUCKET, { public: true });
+  } catch (e) {
+    return NextResponse.json({ error: `Bucket setup: ${e}` }, { status: 500 });
+  }
 
   const results: GenerateResult[] = await Promise.all(
     items.map(async (item): Promise<GenerateResult> => {
@@ -78,9 +85,9 @@ export async function POST(request: Request) {
         const buffer = Buffer.from(await imgRes.arrayBuffer());
 
         // 4. Upload para Supabase Storage
-        const path = `freeme-content/mj/${item.key}.jpg`;
+        const path = `mj/${item.key}.jpg`;
         const { error: upErr } = await supabase.storage
-          .from("course-assets")
+          .from(BUCKET)
           .upload(path, buffer, {
             contentType: "image/jpeg",
             upsert: true,
