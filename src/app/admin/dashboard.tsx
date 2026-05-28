@@ -754,6 +754,30 @@ function BulkMJ({
         </div>
       )}
 
+      {/* Error banner: aparece quando ha erros */}
+      {Object.keys(errors).length > 0 && (
+        <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 mb-4">
+          <p className="text-sm text-red-300 font-medium mb-2">
+            {Object.keys(errors).length} erro(s) na geração — primeiro erro:
+          </p>
+          <p className="text-xs text-red-200/90 font-mono leading-relaxed whitespace-pre-wrap break-all">
+            <strong>{Object.keys(errors)[0]}:</strong> {Object.values(errors)[0]}
+          </p>
+          {Object.keys(errors).length > 1 && (
+            <details className="mt-2">
+              <summary className="text-xs text-red-200/60 cursor-pointer">Ver outros {Object.keys(errors).length - 1} erros</summary>
+              <div className="mt-2 flex flex-col gap-2">
+                {Object.entries(errors).slice(1).map(([k, e]) => (
+                  <p key={k} className="text-xs text-red-200/80 font-mono">
+                    <strong>{k}:</strong> {e}
+                  </p>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+
       {/* Grelha: 60 posts agrupados, cada um com até 2 thumbnails */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {posts.map((post) => {
