@@ -134,6 +134,31 @@ export function AdminDashboard() {
     }
     hydrateFromMJ();
     window.addEventListener("storage", hydrateFromMJ);
+    // Auto-sync com Storage no mount: localStorage nao viaja entre devices,
+    // Storage e a fonte da verdade. Silencioso (sem alert).
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/biblioteca?prefix=mj");
+        const data = await res.json();
+        const items = (data?.items || []) as { name: string; url: string }[];
+        if (items.length === 0) return;
+        const map: Record<string, string> = {};
+        for (const item of items) {
+          const m = /^(D\d+-(?:morning|evening)-\d+)\.jpg$/.exec(item.name);
+          if (m) map[m[1]] = item.url;
+        }
+        if (Object.keys(map).length > 0) {
+          // Merge com o que ja existia (preserva manual override)
+          const existing = JSON.parse(localStorage.getItem(MJ_STORAGE_KEY) || "{}") as Record<string, string>;
+          const merged = { ...map, ...existing };
+          localStorage.setItem(MJ_STORAGE_KEY, JSON.stringify(merged));
+          // Dispara hidratacao do estado de slides
+          hydrateFromMJ();
+          // Avisa BulkMJ e StudioPanel via custom event para refrescarem
+          window.dispatchEvent(new Event("freeme-mj-synced"));
+        }
+      } catch {}
+    })();
     return () => window.removeEventListener("storage", hydrateFromMJ);
   }, []);
 
