@@ -231,9 +231,11 @@ export function AdminDashboard() {
                     </div>
                   </div>
                   {acceptsPhoto && (
-                    <ImageDropZone
+                    <SlideImageControls
                       slideId={slideId}
                       currentUrl={imageUrl}
+                      post={selected}
+                      slideIdx={i}
                       onUploaded={(url) => onImageUploaded(slideId, url)}
                     />
                   )}
@@ -887,6 +889,81 @@ function RenderPanel() {
       )}
     </div>
   );
+}
+
+// "ARRASTA FOTO" + "gerar auto" por slide. Identidade FreeMe.
+function SlideImageControls({
+  slideId,
+  currentUrl,
+  post,
+  slideIdx,
+  onUploaded,
+}: {
+  slideId: string;
+  currentUrl?: string;
+  post: ContentPost;
+  slideIdx: number;
+  onUploaded: (url: string) => void;
+}) {
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generateAuto() {
+    setGenerating(true);
+    setError(null);
+    try {
+      // Determinar qual prompt MJ usa este slideIdx
+      const slots = getMJPromptsForSlide(post, slideIdx);
+      if (slots.length === 0) {
+        setError("Sem prompt MJ definido para este slide");
+        return;
+      }
+      const item = slots[0];
+      const res = await fetch("/api/admin/generate-mj", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ key: item.key, day: post.day, slot: post.slot, slideIndex: item.idx }],
+          strategy: "prefer-existing",
+        }),
+      });
+      const data = await res.json();
+      const result = data.results?.[0];
+      if (result?.url) {
+        onUploaded(result.url);
+      } else {
+        setError(result?.error || "Sem URL devolvida");
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <ImageDropZone slideId={slideId} currentUrl={currentUrl} onUploaded={onUploaded} />
+        <button onClick={generateAuto} disabled={generating} className="btn" style={{ fontSize: 11, padding: "4px 10px", whiteSpace: "nowrap" }}>
+          {generating ? "..." : "gerar auto"}
+        </button>
+      </div>
+      {error && <p style={{ color: "var(--bordeaux)", fontSize: 10 }}>{error}</p>}
+    </div>
+  );
+}
+
+// Devolve o(s) item(s) do pool MJ que mapeiam para este slideIdx do post.
+function getMJPromptsForSlide(post: ContentPost, slideIdx: number) {
+  const slots = getMJPrompts(post.day, post.slot);
+  const items: { key: string; idx: number }[] = [];
+  slots.forEach((s, idx) => {
+    if (s.slideIndex === slideIdx) {
+      items.push({ key: `D${post.day}-${post.slot}-${idx}`, idx });
+    }
+  });
+  return items;
 }
 
 function FilterSelect({

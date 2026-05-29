@@ -1,11 +1,17 @@
-// HTML template builder for FreeMe slide rendering.
-// Matches the admin preview design. Used by the render pipeline.
+// FreeMe slide template — 3 modos visuais que respeitam a identidade do produto:
+//   1. photo-cream: foto top 60%, bloco creme/areia bottom 40% (texto terracota)
+//   2. photo-dark:  foto cheia, gradiente escuro bottom 50% (texto creme + bold ouro)
+//   3. type-only:   sem foto, fundo solido, tipografia centrada (bold ouro/terracota)
+//
+// Cada slide.layout (capa, conteudo, citacao, cta, assinatura, kinetic-line)
+// mapeia para um destes 3 modos consoante tenha foto ou nao.
 
 const PALETTE = {
   barro: "#8C4A36",
   barro2: "#9A5A43",
   terracota: "#C87A5B",
   areia: "#F3E4D6",
+  areia2: "#EAD6C3",
   creme: "#FBF4EC",
   salvia: "#7D8A6A",
   carvao: "#2E241D",
@@ -20,208 +26,158 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function applyBold(body, boldList) {
+function applyBold(body, boldList, boldColor) {
   let html = escapeHtml(body).replace(/\n/g, "<br />");
   for (const phrase of boldList || []) {
     const escaped = escapeHtml(phrase);
     const re = new RegExp(escapeRegex(escaped), "g");
-    html = html.replace(re, `<strong style="color:${PALETTE.ouro};font-weight:500">${escaped}</strong>`);
+    html = html.replace(re, `<strong style="color:${boldColor};font-weight:500">${escaped}</strong>`);
   }
   return html;
 }
 
-// width/height in px. 1080x1350 (4:5) for carousel, 1080x1920 (9:16) for video kinetic-line.
+// Decide qual dos 3 modos visuais usar para um (layout, hasPhoto)
+function visualModeFor(layout, hasPhoto) {
+  if (layout === "kinetic-line") return hasPhoto ? "photo-dark" : "type-on-carvao";
+  if (layout === "capa") return hasPhoto ? "photo-dark" : "type-on-barro";
+  if (layout === "conteudo") return hasPhoto ? "photo-cream" : "type-on-creme";
+  if (layout === "citacao") return "type-on-areia";
+  if (layout === "cta") return "type-on-salvia";
+  if (layout === "assinatura") return "type-on-carvao";
+  return hasPhoto ? "photo-cream" : "type-on-creme";
+}
+
 function dimensions(layout) {
   return layout === "kinetic-line" ? { w: 1080, h: 1920 } : { w: 1080, h: 1350 };
 }
 
-function bgFor(layout) {
-  switch (layout) {
-    case "capa": return { bg: PALETTE.barro, text: PALETTE.creme };
-    case "conteudo": return { bg: PALETTE.creme, text: PALETTE.carvao };
-    case "citacao": return { bg: PALETTE.areia, text: PALETTE.barro };
-    case "cta": return { bg: PALETTE.salvia, text: PALETTE.creme };
-    case "assinatura": return { bg: PALETTE.carvao, text: PALETTE.creme };
-    case "kinetic-line": return { bg: PALETTE.carvao, text: PALETTE.creme };
-    default: return { bg: PALETTE.creme, text: PALETTE.carvao };
-  }
+const SPIRAL_SVG = `
+  <svg viewBox="0 0 512 512" width="36" height="36" style="display:block">
+    <path d="M256 256 C256 210 220 180 180 180 C130 180 100 220 100 270 C100 340 150 390 220 390 C320 390 380 320 380 220 C380 130 310 70 220 70 C120 70 50 150 50 250 C50 380 150 470 290 470 C345 470 385 455 425 425"
+      fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" />
+  </svg>`;
+
+function brandMark(color) {
+  return `<div style="display:flex;align-items:center;gap:8px;color:${color};font-family:'Fraunces',serif;font-size:22px;font-style:italic;letter-spacing:.02em">${SPIRAL_SVG}FreeMe</div>`;
 }
 
-// Build the full HTML document for a single slide.
-// `slide`: { layout, body, bold }
-// `opts`: { photoUrl?, dayLabel?, isVideo? }
+function handleSig(color) {
+  return `<div style="color:${color};font-family:'Outfit',sans-serif;font-size:18px;letter-spacing:.05em;opacity:.7">@vivianne.dos.santos</div>`;
+}
+
+function swipeHint(color, show) {
+  if (!show) return "";
+  return `<div style="position:absolute;bottom:48px;left:60px;color:${color};font-family:'Outfit',sans-serif;font-size:16px;letter-spacing:.18em;opacity:.6">DESLIZA PARA O LADO →</div>`;
+}
+
 export function buildSlideHTML(slide, opts = {}) {
   const { w, h } = dimensions(slide.layout);
-  const { bg, text } = bgFor(slide.layout);
-  const body = applyBold(slide.body, slide.bold);
-  const photoUrl = opts.photoUrl || null;
+  const hasPhoto = Boolean(opts.photoUrl);
+  const mode = visualModeFor(slide.layout, hasPhoto);
+  const showSwipe = opts.isCarousel && !opts.isLastSlide && slide.layout !== "assinatura";
 
-  const hasPhoto = Boolean(photoUrl);
-  const textColorOnPhoto = "#FBF4EC";
+  let bg = PALETTE.creme;
+  let textBox = "";
 
-  let inner = "";
-  switch (slide.layout) {
-    case "capa":
-      inner = `
-        <div class="frame capa">
-          <p class="title">${body}</p>
-          <p class="brand">FreeMe</p>
+  const boldOuro = PALETTE.ouro;
+  const boldTerracota = PALETTE.terracota;
+
+  switch (mode) {
+    case "photo-cream": {
+      // Foto top, bloco areia/creme bottom 40% com texto terracota + bold ouro
+      bg = PALETTE.areia;
+      const body = applyBold(slide.body, slide.bold, boldTerracota);
+      textBox = `
+        <div style="position:absolute;top:0;left:0;right:0;height:60%;background-image:url('${opts.photoUrl}');background-size:cover;background-position:center"></div>
+        <div style="position:absolute;top:0;left:0;right:0;height:60%;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(46,36,29,.4) 95%)"></div>
+        <div style="position:absolute;top:24px;left:36px;color:#FBF4EC">${brandMark(PALETTE.areia)}</div>
+        <div style="position:absolute;top:60%;left:0;right:0;bottom:0;background:${PALETTE.areia};padding:60px 70px;display:flex;flex-direction:column;justify-content:center">
+          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:50px;line-height:1.32;color:${PALETTE.carvao}">${body}</p>
+          <div style="position:absolute;bottom:36px;left:70px">${handleSig(PALETTE.barro)}</div>
         </div>`;
       break;
-    case "conteudo":
-      inner = `<div class="frame conteudo"><p class="text">${body}</p></div>`;
+    }
+    case "photo-dark": {
+      // Foto cheia, gradiente carvao bottom 50%, texto creme + bold ouro
+      const body = applyBold(slide.body, slide.bold, boldOuro);
+      const isCapa = slide.layout === "capa";
+      textBox = `
+        <div style="position:absolute;inset:0;background-image:url('${opts.photoUrl}');background-size:cover;background-position:center"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(46,36,29,.45) 45%,rgba(46,36,29,.92) 100%)"></div>
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;bottom:120px;left:0;right:0;padding:0 70px;color:${PALETTE.creme}">
+          <p style="font-family:${isCapa ? "'Fraunces',serif" : "'Outfit',sans-serif"};font-weight:${isCapa ? 400 : 300};font-size:${isCapa ? 64 : 56}px;line-height:1.22">${body}</p>
+        </div>
+        <div style="position:absolute;bottom:48px;right:48px">${handleSig(PALETTE.creme)}</div>`;
       break;
-    case "citacao":
-      inner = `<div class="frame citacao"><p class="text">&ldquo;${body}&rdquo;</p></div>`;
+    }
+    case "type-on-creme": {
+      bg = PALETTE.creme;
+      const body = applyBold(slide.body, slide.bold, boldTerracota);
+      textBox = `
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.barro}">${brandMark(PALETTE.barro)}</div>
+        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;align-items:center">
+          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:54px;line-height:1.4;color:${PALETTE.carvao};max-width:900px">${body}</p>
+        </div>
+        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.barro)}</div>`;
       break;
-    case "cta":
-      inner = `
-        <div class="frame cta">
-          <p class="text">${body}</p>
-          <div class="pill">freeme.viviannedossantos.com</div>
-        </div>`;
+    }
+    case "type-on-areia": {
+      bg = PALETTE.areia;
+      const body = applyBold(slide.body, slide.bold, boldTerracota);
+      textBox = `
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.barro}">${brandMark(PALETTE.barro)}</div>
+        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;align-items:center;justify-content:center">
+          <p style="font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:62px;line-height:1.3;color:${PALETTE.barro};text-align:center;max-width:880px">&ldquo;${body}&rdquo;</p>
+        </div>
+        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.barro)}</div>`;
       break;
-    case "assinatura":
-      inner = `
-        <div class="frame assinatura">
-          <svg viewBox="0 0 512 512" class="spiral">
-            <path d="M256 256 C256 210 220 180 180 180 C130 180 100 220 100 270 C100 340 150 390 220 390 C320 390 380 320 380 220 C380 130 310 70 220 70 C120 70 50 150 50 250 C50 380 150 470 290 470 C345 470 385 455 425 425"
-              fill="none" stroke="${PALETTE.terracota}" stroke-width="13" stroke-linecap="round" />
-          </svg>
-          <p class="name">${body}</p>
-          <p class="handle">@viviannedossantos</p>
-        </div>`;
+    }
+    case "type-on-barro": {
+      bg = PALETTE.barro;
+      const body = applyBold(slide.body, slide.bold, boldOuro);
+      textBox = `
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;align-items:center">
+          <p style="font-family:'Fraunces',serif;font-weight:400;font-size:68px;line-height:1.2;color:${PALETTE.creme};max-width:900px">${body}</p>
+        </div>
+        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.creme)}</div>`;
       break;
-    case "kinetic-line":
-      inner = `<div class="frame kinetic"><p class="text">${body}</p></div>`;
+    }
+    case "type-on-salvia": {
+      bg = PALETTE.salvia;
+      const body = applyBold(slide.body, slide.bold, PALETTE.ouro);
+      textBox = `
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:54px;line-height:1.32;color:${PALETTE.creme};max-width:900px;margin-bottom:60px">${body}</p>
+          <div style="background:${PALETTE.creme};color:${PALETTE.salvia};padding:24px 56px;border-radius:999px;font-family:'Outfit',sans-serif;font-size:30px;font-weight:500">freeme.viviannedossantos.com</div>
+        </div>
+        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.creme)}</div>`;
       break;
-    default:
-      inner = `<div class="frame conteudo"><p class="text">${body}</p></div>`;
+    }
+    case "type-on-carvao": {
+      bg = PALETTE.carvao;
+      const body = applyBold(slide.body, slide.bold, boldOuro);
+      const isAssinatura = slide.layout === "assinatura";
+      textBox = `
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;flex-direction:column;align-items:${isAssinatura ? "center" : "flex-start"};justify-content:center;text-align:${isAssinatura ? "center" : "left"}">
+          ${isAssinatura ? `<div style="color:${PALETTE.terracota};margin-bottom:48px">${SPIRAL_SVG.replace("36", "92").replace("36", "92")}</div>` : ""}
+          <p style="font-family:'${isAssinatura ? "Fraunces',serif" : "Outfit',sans-serif"}';font-${isAssinatura ? "style:italic;font-" : ""}weight:${isAssinatura ? 400 : 300};font-size:${isAssinatura ? 48 : 70}px;line-height:1.3;color:${PALETTE.creme};max-width:900px">${body}</p>
+        </div>
+        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.creme)}</div>`;
+      break;
+    }
   }
 
   return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
+<html><head><meta charset="UTF-8" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Outfit:wght@200;300;400;500;600&display=block" rel="stylesheet" />
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: ${w}px; height: ${h}px; overflow: hidden; }
-  body {
-    background: ${bg};
-    color: ${hasPhoto ? textColorOnPhoto : text};
-    font-family: 'Outfit', sans-serif;
-    position: relative;
-  }
-  .photo {
-    position: absolute; inset: 0;
-    background-image: url('${photoUrl || ""}');
-    background-size: cover;
-    background-position: center;
-  }
-  .scrim {
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.85) 100%);
-  }
-  .frame {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 100px 90px;
-    text-align: center;
-    z-index: 2;
-  }
-  .frame.capa .title {
-    font-family: 'Fraunces', serif;
-    font-weight: 300;
-    font-size: 72px;
-    line-height: 1.18;
-    letter-spacing: -0.02em;
-  }
-  .frame.capa .brand {
-    margin-top: 36px;
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 34px;
-    color: ${hasPhoto ? PALETTE.ouro : PALETTE.terracota};
-    letter-spacing: 0.04em;
-  }
-  .frame.conteudo { justify-content: flex-start; padding-top: 200px; }
-  .frame.conteudo .text {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 300;
-    font-size: 48px;
-    line-height: 1.45;
-    max-width: 880px;
-    text-align: left;
-  }
-  .frame.citacao .text {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 300;
-    font-size: 56px;
-    line-height: 1.35;
-    max-width: 860px;
-  }
-  .frame.cta .text {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 300;
-    font-size: 54px;
-    line-height: 1.35;
-    max-width: 880px;
-    margin-bottom: 60px;
-  }
-  .frame.cta .pill {
-    display: inline-block;
-    background: ${PALETTE.creme};
-    color: ${PALETTE.salvia};
-    padding: 26px 64px;
-    border-radius: 999px;
-    font-family: 'Outfit', sans-serif;
-    font-size: 32px;
-    font-weight: 500;
-  }
-  .frame.assinatura .spiral { width: 96px; height: 96px; margin-bottom: 40px; }
-  .frame.assinatura .name {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 42px;
-    color: ${PALETTE.terracota};
-    white-space: pre-line;
-    line-height: 1.3;
-  }
-  .frame.assinatura .handle {
-    margin-top: 18px;
-    font-family: 'Outfit', sans-serif;
-    font-size: 28px;
-    color: rgba(251,244,236,0.55);
-  }
-  .frame.kinetic .text {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 300;
-    font-size: 70px;
-    line-height: 1.3;
-    max-width: 900px;
-  }
-  .corner {
-    position: absolute; bottom: 50px; right: 70px; z-index: 3;
-    font-family: 'Outfit', sans-serif;
-    font-size: 22px;
-    color: rgba(251,244,236,0.45);
-    letter-spacing: 0.08em;
-  }
-</style>
-</head>
-<body>
-${hasPhoto ? `<div class="photo"></div><div class="scrim"></div>` : ""}
-${inner}
-${opts.dayLabel ? `<div class="corner">${escapeHtml(opts.dayLabel)}</div>` : ""}
-<script>window.READY = true;</script>
-</body>
-</html>`;
+<style>* { margin:0; padding:0; box-sizing:border-box } html,body { width:${w}px; height:${h}px; overflow:hidden } body { background:${bg}; position:relative }</style>
+</head><body>${textBox}${swipeHint(PALETTE.creme, showSwipe)}<script>window.READY=true</script></body></html>`;
 }
