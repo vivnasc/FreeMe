@@ -230,6 +230,15 @@ export function AdminDashboard() {
         <StudioPanel
           posts={ALL_POSTS}
           approved={approved}
+          onApproveAll={() => {
+            const all = new Set(ALL_POSTS.map((p) => postKey(p)));
+            setApprovedState(all);
+            saveApproved(all);
+          }}
+          onUnapproveAll={() => {
+            setApprovedState(new Set());
+            saveApproved(new Set());
+          }}
           onNavigate={(v, sub) => {
             setView(v);
             if (sub) setConteudoSub(sub);
@@ -445,10 +454,14 @@ export function AdminDashboard() {
 function StudioPanel({
   posts,
   approved,
+  onApproveAll,
+  onUnapproveAll,
   onNavigate,
 }: {
   posts: ContentPost[];
   approved: Set<string>;
+  onApproveAll: () => void;
+  onUnapproveAll: () => void;
   onNavigate: (view: MainView, sub?: ConteudoSub) => void;
 }) {
   const [diag, setDiag] = useState<{ debug?: unknown; claude?: unknown; replicate?: unknown }>({});
@@ -566,11 +579,29 @@ function StudioPanel({
         <p className="muted" style={{ fontSize: 13, lineHeight: 1.6, marginBottom: nextAction.label ? 14 : 0 }}>
           {nextAction.desc}
         </p>
-        {nextAction.label && (
-          <button onClick={() => onNavigate(nextAction.view)} className="btn primary">
-            {nextAction.label}
-          </button>
-        )}
+        <div className="row tight" style={{ flexWrap: "wrap" }}>
+          {nextAction.label && (
+            <button onClick={() => onNavigate(nextAction.view)} className="btn primary">
+              {nextAction.label}
+            </button>
+          )}
+          {approvedCount < posts.length && (
+            <button
+              onClick={() => {
+                if (confirm(`Aprovar TODOS os ${posts.length} posts sem rever individualmente?`)) onApproveAll();
+              }}
+              className="btn salvia"
+              style={{ fontSize: 12 }}
+            >
+              Aprovar TODOS ({posts.length}) sem rever
+            </button>
+          )}
+          {approvedCount > 0 && (
+            <button onClick={onUnapproveAll} className="btn" style={{ fontSize: 11 }}>
+              Limpar aprovações
+            </button>
+          )}
+        </div>
       </div>
 
       {/* FUNIL DE PRODUÇÃO (padrão SyncHim §CIRCUITO-COMPLETO) */}
@@ -653,6 +684,9 @@ function StudioPanel({
         summary={`${posts.length} posts · ${totalCarousels} carrosséis · ${totalVideos} vídeos · 30 dias`}
       >
         <div className="flex flex-wrap gap-2">
+          <button onClick={() => onNavigate("conteudo", "montagem")} className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80">
+            Montagem (recomendado)
+          </button>
           <button onClick={() => onNavigate("conteudo", "lista")} className="text-xs rounded-full bg-creme/10 px-4 py-2 text-creme hover:bg-creme/20">
             Lista
           </button>
