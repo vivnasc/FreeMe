@@ -1634,6 +1634,29 @@ function BulkMJ({
     saveClaudePrompts({});
   }
 
+  // Re-sincroniza com Storage: lista freeme-assets/mj/ e arranja URLs locais
+  // que possam estar com bucket errado (course-assets) ou stale.
+  async function syncFromStorage() {
+    setRunning(true);
+    try {
+      const res = await fetch("/api/admin/biblioteca?prefix=mj");
+      const data = await res.json();
+      const items = (data.items || []) as { name: string; url: string }[];
+      const next: Record<string, string> = {};
+      for (const item of items) {
+        const m = /^(D\d+-(?:morning|evening)-\d+)\.jpg$/.exec(item.name);
+        if (m) next[m[1]] = item.url;
+      }
+      setGenerated(next);
+      saveGenerated(next);
+      alert(`Sincronizado: ${Object.keys(next).length} imagens reconhecidas em Storage.`);
+    } catch (e) {
+      alert(`Erro: ${e}`);
+    } finally {
+      setRunning(false);
+    }
+  }
+
   // Versao "pura": 1 prompt por linha, estilo ja incluido, pronto a colar
   const pure = allPrompts.map((p) => p.full).join("\n");
   // Versao etiquetada: organizada por post, com cabecalhos (so para referencia)
@@ -1691,6 +1714,9 @@ function BulkMJ({
             {running && progress && progress.total > testN * 3
               ? `A gerar ${progress.done}/${progress.total}...`
               : `Produzir todas (${allPrompts.length - Object.keys(generated).length} em falta · ~$${((allPrompts.length - Object.keys(generated).length) * 0.07).toFixed(2)})`}
+          </button>
+          <button onClick={syncFromStorage} disabled={running} className="text-xs rounded-full bg-creme/10 px-3 py-2 text-creme hover:bg-creme/20">
+            Sincronizar com Storage
           </button>
           {Object.keys(generated).length > 0 && (
             <button onClick={clearAll} disabled={running} className="text-xs rounded-full bg-creme/5 px-3 py-2 text-creme/50 hover:bg-creme/10">
