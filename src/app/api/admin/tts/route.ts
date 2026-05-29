@@ -4,9 +4,9 @@ import { getAdminSupabase, ensureBucket } from "@/lib/admin/supabase-admin";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "";
-// v3 e o modelo correcto para PT-PT (testado pela Vivianne em aulas).
-// NAO passar language_code (interfere com v3) nem stability alto demais.
-const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_v3";
+// turbo_v2_5 suporta language_code (v3 nao) - forca fonemas PT em vez de BR.
+// Voz clonada e PT-PT, com language_code:"pt" o tokenizer escolhe PT correcto.
+const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_turbo_v2_5";
 const BUCKET = "freeme-assets";
 
 export async function POST(request: Request) {
@@ -37,12 +37,11 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         text,
         model_id: ELEVENLABS_MODEL,
-        // Priming PT-PT: previous_text forca o modelo a continuar no mesmo sotaque.
-        previous_text: "Olá, sou a Vivianne. Falo português de Portugal, com sotaque de Lisboa.",
+        language_code: "pt",       // turbo_v2_5 suporta - forca fonemas PT (nao BR)
         voice_settings: {
-          stability: 0.65,         // mais estavel = menos drift de sotaque
-          similarity_boost: 0.95,  // cola maxima a voz clonada (PT-PT original)
-          style: 0.0,              // zero interpretacao = modelo nao "inventa" sotaque
+          stability: 0.55,
+          similarity_boost: 0.90,  // cola a voz clonada PT-PT
+          style: 0.15,             // baixo mas n zero para preservar entonacao
           use_speaker_boost: true,
         },
       }),
