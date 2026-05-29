@@ -8,6 +8,29 @@ import { getMJPrompts } from "@/content/mj-prompts";
 
 export const maxDuration = 60;
 const BUCKET = "freeme-assets";
+const MAX_RETRIES = 2; // 1 tentativa + 2 retries = 3 total
+
+async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e).toLowerCase();
+      // Nao retry se for problema permanente
+      if (msg.includes("unauthorized") || msg.includes("invalid api") || msg.includes("not found")) {
+        throw e;
+      }
+      if (attempt < MAX_RETRIES) {
+        const backoff = 500 * Math.pow(2, attempt); // 500ms, 1s, 2s
+        await new Promise((r) => setTimeout(r, backoff));
+        console.log(`[generate-mj] retry ${attempt + 1} for ${label}: ${String(e).slice(0, 100)}`);
+      }
+    }
+  }
+  throw lastErr;
+}
 
 interface GenerateItem {
   key: string; // "D{day}-{slot}-{slideIndex}"
@@ -61,28 +84,36 @@ export async function POST(request: Request) {
         const slide = post.slides[slotMeta.slideIndex];
         if (!slide) throw new Error(`Slide ${slotMeta.slideIndex} nao existe no post`);
 
-        // 1. Claude gera o prompt MJ a partir do conteúdo do slide
-        const promptResult = await generateImagePrompt({
-          postTitle: post.title,
-          postType: post.type,
-          postCategory: post.categoria,
-          slideBody: slide.body,
-          slideIndex: slotMeta.slideIndex,
-          usage: slotMeta.usage,
-        });
+        // 1. Claude gera o prompt MJ a partir do conteúdo do slide (com retry)
+        const promptResult = await withRetry(
+          () => generateImagePrompt({
+            postTitle: post.title,
+            postType: post.type,
+            postCategory: post.categoria,
+            slideBody: slide.body,
+            slideIndex: slotMeta.slideIndex,
+            usage: slotMeta.usage,
+          }),
+          `claude-${item.key}`,
+        );
 
-        // 2. Replicate gera a imagem
+        // 2. Replicate gera a imagem (com retry)
         const aspectRatio: AspectRatio = post.type === "carousel" ? "4:5" : "9:16";
-        const replicateUrl = await generateImage({
-          prompt: promptResult.prompt,
-          aspectRatio,
-          outputFormat: "jpg",
-        });
+        const replicateUrl = await withRetry(
+          () => generateImage({
+            prompt: promptResult.prompt,
+            aspectRatio,
+            outputFormat: "jpg",
+          }),
+          `replicate-${item.key}`,
+        );
 
-        // 3. Download da imagem do Replicate
-        const imgRes = await fetch(replicateUrl);
-        if (!imgRes.ok) throw new Error(`Download falhou: ${imgRes.status}`);
-        const buffer = Buffer.from(await imgRes.arrayBuffer());
+        // 3. Download da imagem do Replicate (com retry)
+        const buffer = await withRetry(async () => {
+          const imgRes = await fetch(replicateUrl);
+          if (!imgRes.ok) throw new Error(`Download falhou: ${imgRes.status}`);
+          return Buffer.from(await imgRes.arrayBuffer());
+        }, `download-${item.key}`);
 
         // 4. Upload para Supabase Storage
         const path = `mj/${item.key}.jpg`;
