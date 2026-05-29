@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin/auth";
 
-function envInfo(name: string) {
+function envInfo(name: string, opts?: { exposeValue?: boolean }) {
   const v = process.env[name];
   if (!v) return { name, set: false };
+  if (opts?.exposeValue) return { name, set: true, value: v };
   return {
     name,
     set: true,
@@ -46,6 +47,7 @@ export async function GET() {
       envInfo("FREEME_ADMIN_PASSWORD"),
       envInfo("RESEND_API_KEY"),
       envInfo("RESEND_FROM"),
+      envInfo("NEXT_PUBLIC_CAPTION_AUTHOR_TAG", { exposeValue: true }),
     ],
   });
 }

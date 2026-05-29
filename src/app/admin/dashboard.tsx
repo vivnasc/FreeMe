@@ -11,16 +11,30 @@ type MainView = "studio" | "conteudo" | "imagens" | "slides" | "distribuir";
 type DetailTab = "slides" | "copy" | "imagem";
 type ConteudoSub = "lista" | "calendario" | "captions";
 
-const VIVIANNE_HANDLE = "@vivianne.dos.santos";
+const CAPTION_AUTHOR_TAG = (process.env.NEXT_PUBLIC_CAPTION_AUTHOR_TAG ?? "@vivianne.dos.santos").trim();
+const VIVIANNE_HANDLE = CAPTION_AUTHOR_TAG;
+
+function appendAuthorTag(caption: string, hashtags?: string): string {
+  // Vazio desactiva
+  if (!CAPTION_AUTHOR_TAG) return hashtags ? `${caption}\n\n${hashtags}` : caption;
+  // Nao duplicar (case-insensitive)
+  if (caption.toLowerCase().includes(CAPTION_AUTHOR_TAG.toLowerCase())) {
+    return hashtags ? `${caption}\n\n${hashtags}` : caption;
+  }
+  // Mention antes das hashtags (IG detecta melhor)
+  return hashtags
+    ? `${caption}\n\n${CAPTION_AUTHOR_TAG}\n\n${hashtags}`
+    : `${caption}\n\n${CAPTION_AUTHOR_TAG}`;
+}
 
 function igCaption(post: ContentPost): string {
-  return `${post.caption}\n\n— ${VIVIANNE_HANDLE} · FreeMe\n\n.\n.\n.\n${post.hashtags}`;
+  return appendAuthorTag(post.caption, post.hashtags);
 }
 
 function tiktokCaption(post: ContentPost): string {
   const short = post.caption.split("\n")[0];
   const tags = post.hashtags.split(" ").slice(0, 5).join(" ");
-  return `${short}\n\n— ${VIVIANNE_HANDLE}\n\n${tags} #fyp #paraamães`;
+  return appendAuthorTag(short, `${tags} #fyp #paraamães`);
 }
 
 function viewFromPath(path: string): MainView {
