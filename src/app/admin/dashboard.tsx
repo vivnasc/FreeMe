@@ -1241,17 +1241,148 @@ function PostEditorView({
         </div>
       </div>
 
+      {/* TTS por slide (so videos) — ouvir antes de renderizar */}
+      {post.type === "video" && (
+        <VideoTTSPanel post={post} pKey={pKey} />
+      )}
+
       {/* INFO VÍDEO */}
       {post.type === "video" && (
         <div className="card" style={{ marginTop: 16, borderColor: "var(--terracota)" }}>
           <div className="mini" style={{ color: "var(--terracota)", marginBottom: 8 }}>Como o vídeo é montado</div>
           <ul style={{ fontSize: 12, color: "var(--texto-suave)", paddingLeft: 18, lineHeight: 1.7 }}>
             <li>{post.slides.length} cenas. Cada slide = 1 cena 1080×1920.</li>
-            <li>TTS ElevenLabs lê cada texto na voz da Vivianne.</li>
+            <li>TTS ElevenLabs lê cada texto na voz da Vivianne. Gera + ouve em cima.</li>
             <li>Foto MJ do post = background fixo de todas as cenas.</li>
             <li>ffmpeg concat → MP4 em <code>freeme-assets/videos/D{post.day}-{post.slot}.mp4</code></li>
-            <li>Duração ≈ {(post.slides.length * 3.5).toFixed(0)}s.</li>
+            <li>Render reusa o TTS aprovado em Storage. Se não existir, gera novo no GH Actions.</li>
           </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// TTS por slide de video. Lista o que ja existe em Storage,
+// permite gerar/regenerar via ElevenLabs e ouvir antes do render.
+function VideoTTSPanel({ post, pKey }: { post: ContentPost; pKey: string }) {
+  const [audios, setAudios] = useState<Record<number, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refresh() {
+    try {
+      const res = await fetch(`/api/admin/biblioteca?prefix=audio/${pKey}`);
+      const data = await res.json();
+      const items = (data?.items || []) as { name: string; url: string }[];
+      const map: Record<number, string> = {};
+      for (const item of items) {
+        const m = /^slide-(\d+)\.mp3$/.exec(item.name);
+        if (m) map[Number(m[1])] = item.url;
+      }
+      setAudios(map);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, [pKey]);
+
+  async function generateOne(slideIdx: number, text: string) {
+    setGenerating(slideIdx);
+    setError(null);
+    try {
+      const clean = text.replace(/[*_]/g, "").trim();
+      const res = await fetch("/api/admin/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: clean,
+          blocker: pKey,
+          filename: `slide-${slideIdx}`,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        setAudios((prev) => ({ ...prev, [slideIdx]: data.url }));
+      } else {
+        setError(data.error || "Sem URL devolvida");
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setGenerating(null);
+    }
+  }
+
+  async function generateAll() {
+    const missing = post.slides.map((_, i) => i).filter((i) => !audios[i]);
+    if (missing.length === 0) {
+      alert("Todos os slides já têm TTS gerado.");
+      return;
+    }
+    if (!confirm(`Gerar TTS de ${missing.length} cenas. Vais usar créditos ElevenLabs.`)) return;
+    for (const i of missing) {
+      await generateOne(i, post.slides[i].body);
+    }
+  }
+
+  const totalDone = Object.keys(audios).length;
+  const totalSlides = post.slides.length;
+
+  return (
+    <div className="card" style={{ marginTop: 16, borderColor: "var(--ouro)" }}>
+      <div className="row between" style={{ marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <div className="mini" style={{ color: "var(--ouro)" }}>TTS · voz Vivianne (ElevenLabs)</div>
+          <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+            Ouve cada cena antes do render. {totalDone}/{totalSlides} geradas.
+          </p>
+        </div>
+        <div className="row tight">
+          <button onClick={refresh} className="btn" style={{ fontSize: 11 }}>↻</button>
+          <button onClick={generateAll} disabled={generating !== null} className="btn primary" style={{ fontSize: 12 }}>
+            {generating !== null ? `Slide ${generating + 1}...` : `Gerar todos os ${totalSlides}`}
+          </button>
+        </div>
+      </div>
+
+      {error && <p style={{ color: "var(--bordeaux)", fontSize: 12, marginBottom: 8 }}>{error}</p>}
+
+      {loading ? (
+        <p className="muted" style={{ fontSize: 12 }}>A verificar Storage...</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {post.slides.map((slide, i) => {
+            const url = audios[i];
+            const isGen = generating === i;
+            return (
+              <div key={i} className="row" style={{ gap: 10, padding: 8, background: "var(--bg)", borderRadius: 4, alignItems: "center" }}>
+                <span className="mini" style={{ width: 36, color: "var(--terracota)", fontSize: 11 }}>
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span style={{ flex: 1, fontSize: 12, color: "var(--texto)", lineHeight: 1.4 }}>{slide.body}</span>
+                {url ? (
+                  <audio controls src={url} style={{ height: 28, maxWidth: 200 }} />
+                ) : (
+                  <span className="muted" style={{ fontSize: 11, fontStyle: "italic" }}>sem TTS</span>
+                )}
+                <button
+                  onClick={() => generateOne(i, slide.body)}
+                  disabled={isGen}
+                  className="btn"
+                  style={{ fontSize: 11, padding: "4px 8px" }}
+                >
+                  {isGen ? "..." : url ? "regerar" : "gerar"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

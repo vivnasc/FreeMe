@@ -184,9 +184,27 @@ async function buildVideo(post, workDir) {
     const pngPath = path.join(workDir, `slide-${i}.png`);
     await fs.writeFile(pngPath, pngBuf);
 
-    // Limpa o texto para TTS (sem markdown bold etc)
+    // TTS: 1) tenta reusar audio aprovado em Storage (gerado/ouvido na admin).
+    //      2) se nao existir, gera via ElevenLabs e sobe para mesmo path.
     const ttsText = slide.body.replace(/[*_]/g, "").trim();
-    const audioBuf = await generateTTS(ttsText);
+    const audioStoragePath = `audio/D${post.day}-${post.slot}/slide-${i}.mp3`;
+    let audioBuf;
+    try {
+      const { data: audioUrl } = supabase.storage.from(BUCKET).getPublicUrl(audioStoragePath);
+      const head = await fetch(audioUrl.publicUrl, { method: "HEAD" });
+      if (head.ok) {
+        const got = await fetch(audioUrl.publicUrl);
+        audioBuf = Buffer.from(await got.arrayBuffer());
+        console.log(`  audio: reusado ${audioStoragePath}`);
+      }
+    } catch {}
+    if (!audioBuf) {
+      audioBuf = await generateTTS(ttsText);
+      console.log(`  audio: gerado ${audioStoragePath}`);
+      await supabase.storage.from(BUCKET).upload(audioStoragePath, audioBuf, {
+        contentType: "audio/mpeg", upsert: true,
+      });
+    }
     const audioPath = path.join(workDir, `audio-${i}.mp3`);
     await fs.writeFile(audioPath, audioBuf);
     const duration = await getAudioDuration(audioPath);
