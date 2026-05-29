@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "produce:dump": "tsx tools/produce/dump-posts.ts",
-    "produce:render": "node tools/produce/render-slides.mjs"
+    "produce:render": "node tools/produce/render-slides.mjs",
+    "produce:videos": "node tools/produce/render-videos.mjs"
   },
   "dependencies": {
     "@paypal/react-paypal-js": "^9.2.0",
