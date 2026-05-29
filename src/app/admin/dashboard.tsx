@@ -1032,6 +1032,8 @@ function RenderPanel() {
         {running ? "A disparar..." : "Disparar render"}
       </button>
 
+      <CleanupOrphanAudio />
+
       {result?.runsUrl && (
         <div className="mt-6 rounded-xl bg-salvia/10 border border-salvia/20 p-4">
           <p className="text-sm text-salvia mb-2">Workflow disparado.</p>
@@ -1045,6 +1047,37 @@ function RenderPanel() {
           <p className="text-sm text-red-300">{result.error}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function CleanupOrphanAudio() {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<{ ok?: boolean; removed?: number; folders?: string[]; error?: string } | null>(null);
+  async function run() {
+    if (!confirm("Apagar áudios em audio/D*-morning/ e audio/D*-evening/ (paths antigos)?")) return;
+    setRunning(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/cleanup-orphan-audio", { method: "POST" });
+      setResult(await res.json());
+    } catch (e) {
+      setResult({ error: String(e) });
+    } finally {
+      setRunning(false);
+    }
+  }
+  return (
+    <div className="mt-4 text-xs text-creme/50">
+      <button onClick={run} disabled={running} className="underline hover:text-creme/80 disabled:opacity-40">
+        {running ? "a limpar..." : "Limpar áudios órfãos (paths antigos D*-morning/-evening)"}
+      </button>
+      {result?.ok && (
+        <p className="mt-2 text-salvia">
+          {result.removed} ficheiros removidos de {result.folders?.length || 0} pastas.
+        </p>
+      )}
+      {result?.error && <p className="mt-2 text-red-300">{result.error}</p>}
     </div>
   );
 }
