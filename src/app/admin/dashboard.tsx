@@ -11,14 +11,16 @@ type MainView = "studio" | "conteudo" | "imagens" | "slides" | "distribuir";
 type DetailTab = "slides" | "copy" | "imagem";
 type ConteudoSub = "lista" | "calendario" | "captions";
 
+const VIVIANNE_HANDLE = "@vivianne.dos.santos";
+
 function igCaption(post: ContentPost): string {
-  return `${post.caption}\n\n.\n.\n.\n${post.hashtags}`;
+  return `${post.caption}\n\n— ${VIVIANNE_HANDLE} · FreeMe\n\n.\n.\n.\n${post.hashtags}`;
 }
 
 function tiktokCaption(post: ContentPost): string {
   const short = post.caption.split("\n")[0];
   const tags = post.hashtags.split(" ").slice(0, 5).join(" ");
-  return `${short}\n\n${tags} #fyp #paraamães`;
+  return `${short}\n\n— ${VIVIANNE_HANDLE}\n\n${tags} #fyp #paraamães`;
 }
 
 function viewFromPath(path: string): MainView {
@@ -666,39 +668,61 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
     d.setDate(d.getDate() + 1);
     return d.toISOString().split("T")[0];
   });
+  const [supabasePublicBase, setSupabasePublicBase] = useState<string>("");
+
+  useEffect(() => {
+    // Tenta carregar de /api/admin/auth/debug a NEXT_PUBLIC_SUPABASE_URL (devolvida com prefix)
+    fetch("/api/admin/auth/debug")
+      .then((r) => r.json())
+      .then((d) => {
+        const url = d?.envs?.find?.((e: { name: string }) => e.name === "NEXT_PUBLIC_SUPABASE_URL");
+        if (url?.prefix) setSupabasePublicBase("");
+      })
+      .catch(() => {});
+  }, []);
 
   function buildAndDownload() {
-    // Header Metricool compatível
     const header = [
       "Date", "Time", "Draft",
       "Instagram", "Instagram Post Type", "Instagram Show Reel On Feed",
       "TikTok", "TikTok Post Privacy",
       "Text",
       "Picture Url 1", "Picture Url 2", "Picture Url 3", "Picture Url 4", "Picture Url 5",
+      "Picture Url 6", "Picture Url 7", "Picture Url 8", "Picture Url 9", "Picture Url 10",
+      "First Comment",
     ];
-    const supabaseUrl = "https://" + (typeof window !== "undefined" ? window.location.hostname : "");
 
     const rows = posts.map((p) => {
       const startD = new Date(startDate);
       startD.setDate(startD.getDate() + (p.day - 1));
       const date = startD.toISOString().split("T")[0];
       const time = `${p.time}:00`;
-      const text = `${p.caption}\n\n${p.hashtags}`;
+      const ig = igCaption(p);
       const igType = p.type === "carousel" ? "CAROUSEL" : "REEL";
-      // URLs de slides (a serem geradas na Fase 3)
-      const slidePngs = Array.from({ length: Math.min(p.slides.length, 5) }, (_, i) =>
-        `${supabaseUrl.replace("admin", "")}storage/v1/object/public/freeme-assets/slides/D${p.day}-${p.slot}-${String(i).padStart(2, "0")}.png`
-      );
-      const cells = [
-        date, time, "FALSE",
-        "TRUE", igType, p.type === "video" ? "TRUE" : "FALSE",
-        "TRUE", "PUBLIC_TO_EVERYONE",
-        `"${text.replace(/"/g, '""')}"`,
-        ...slidePngs,
-        ...Array(5 - slidePngs.length).fill(""),
-      ];
+
+      // Para videos: URL unica do MP4. Para carrosseis: ate 10 PNGs.
+      const isVideo = p.type === "video";
+      const slidePngs: string[] = isVideo
+        ? [`${supabasePublicBase}/storage/v1/object/public/freeme-assets/videos/D${p.day}-${p.slot}.mp4`]
+        : Array.from({ length: Math.min(p.slides.length, 10) }, (_, i) =>
+            `${supabasePublicBase}/storage/v1/object/public/freeme-assets/slides/D${p.day}-${p.slot}-${String(i).padStart(2, "0")}.png`
+          );
+
+      // First comment (1° comentario auto) com mention extra + diagnostico CTA
+      const firstComment = `Diagnóstico grátis: freeme.viviannedossantos.com\n\nSe te tocou, partilha com uma mãe que precisa. ${VIVIANNE_HANDLE}`;
+
+      const cells = new Array(header.length).fill("");
+      cells[0] = date;
+      cells[1] = time;
+      cells[2] = "FALSE";
+      cells[3] = "TRUE"; cells[4] = igType; cells[5] = isVideo ? "TRUE" : "FALSE";
+      cells[6] = "TRUE"; cells[7] = "PUBLIC_TO_EVERYONE";
+      cells[8] = `"${ig.replace(/"/g, '""')}"`;
+      slidePngs.slice(0, 10).forEach((u, i) => { cells[9 + i] = u; });
+      cells[19] = `"${firstComment.replace(/"/g, '""')}"`;
       return cells.join(",");
     });
+
     const csv = [header.join(","), ...rows].join("\r\n") + "\r\n";
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
@@ -708,35 +732,61 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
   }
 
   return (
-    <div className="max-w-2xl">
-      <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 mb-6">
-        <p className="text-sm text-amber-200 font-medium mb-1">CSV Metricool</p>
-        <p className="text-xs text-amber-100/70 leading-relaxed">
-          Gera um CSV no formato Metricool com data + hora + caption + URLs das imagens (que vão ficar no Storage após a Fase 3).
+    <div style={{ maxWidth: 720 }}>
+      <div className="card" style={{ marginBottom: 16, borderColor: "var(--ouro)" }}>
+        <div className="mini" style={{ marginBottom: 8 }}>CSV Metricool</div>
+        <p className="muted" style={{ fontSize: 13, lineHeight: 1.6 }}>
+          CSV com data + hora + captions (incluindo {VIVIANNE_HANDLE}) + URLs dos slides/vídeos.
           Importa em Metricool → Planning → Import CSV.
         </p>
       </div>
 
-      <label className="flex flex-col gap-1 mb-4">
-        <span className="text-xs text-creme/40 uppercase tracking-wider">Data de início (Dia 1)</span>
+      <div className="card" style={{ marginBottom: 16, borderColor: "var(--terracota)" }}>
+        <div className="mini" style={{ marginBottom: 8, color: "var(--terracota)" }}>Para o post aparecer no teu perfil</div>
+        <p style={{ fontSize: 13, lineHeight: 1.7 }}>
+          O <strong>mention</strong> {VIVIANNE_HANDLE} já vai no caption — quem ler tem o teu perfil clicável.
+        </p>
+        <p style={{ fontSize: 13, lineHeight: 1.7, marginTop: 8 }}>
+          Para o post aparecer também no <strong>teu feed</strong>, em Metricool depois do import, edita cada
+          post e activa <strong>&ldquo;Add Collaborator&rdquo;</strong> → adiciona <code>{VIVIANNE_HANDLE.slice(1)}</code>.
+          Tens de aceitar o convite no Instagram da Vivianne para o post ficar duplicado nos 2 feeds.
+        </p>
+      </div>
+
+      <label style={{ display: "block", marginBottom: 16 }}>
+        <span className="mini" style={{ marginBottom: 6, display: "block" }}>Data de início (Dia 1)</span>
         <input
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="bg-creme/5 rounded-lg px-4 py-3 text-creme outline-none cursor-pointer"
+          className="input"
+          style={{ maxWidth: 220 }}
         />
-        <span className="text-xs text-creme/40 mt-1">D30 = {new Date(new Date(startDate).getTime() + 29 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}</span>
+        <span className="muted" style={{ fontSize: 12, display: "block", marginTop: 4 }}>
+          D30 = {new Date(new Date(startDate).getTime() + 29 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+        </span>
       </label>
 
-      <button
-        onClick={buildAndDownload}
-        className="rounded-full bg-terracota px-6 py-3 text-sm font-medium text-creme hover:bg-terracota/80"
-      >
+      <label style={{ display: "block", marginBottom: 16 }}>
+        <span className="mini" style={{ marginBottom: 6, display: "block" }}>Base URL do Supabase (para URLs dos slides)</span>
+        <input
+          type="url"
+          value={supabasePublicBase}
+          onChange={(e) => setSupabasePublicBase(e.target.value)}
+          placeholder="https://<project>.supabase.co"
+          className="input"
+        />
+        <span className="muted" style={{ fontSize: 12, display: "block", marginTop: 4 }}>
+          Encontra em Supabase Dashboard → Settings → API → Project URL
+        </span>
+      </label>
+
+      <button onClick={buildAndDownload} className="btn primary" disabled={!supabasePublicBase}>
         Download CSV ({posts.length} posts)
       </button>
 
-      <p className="text-xs text-creme/40 mt-4">
-        ⚠ As URLs dos slides ainda têm de ser geradas na Fase 3 antes deste CSV servir para publicar.
+      <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+        ⚠ Os PNGs/MP4s nos URLs do CSV têm de existir no Storage (Fase 3) antes de o Metricool publicar.
       </p>
     </div>
   );
