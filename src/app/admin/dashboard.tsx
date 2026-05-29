@@ -953,7 +953,7 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
 }
 
 function RenderPanel() {
-  const [scope, setScope] = useState<"all" | "slides-only" | "videos-only" | "semana-1" | "semana-2" | "semana-3" | "semana-4" | "day-1" | "day-7" | "day-15" | "day-30">("day-1");
+  const [scope, setScope] = useState<"all" | "slides-only" | "videos-only" | "semana-1" | "semana-2" | "semana-3" | "semana-4" | "day-1" | "day-1-video" | "day-1-slides" | "day-7" | "day-7-video" | "day-15" | "day-15-video" | "day-30" | "day-30-video">("day-1-video");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ runsUrl?: string; error?: string } | null>(null);
 
