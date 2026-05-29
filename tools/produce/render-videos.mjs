@@ -110,12 +110,11 @@ async function generateTTS(text) {
       },
       body: JSON.stringify({
         text,
-        model_id: process.env.ELEVENLABS_TTS_MODEL || "eleven_multilingual_v2",
-        language_code: process.env.ELEVENLABS_LANG || "pt",
+        model_id: process.env.ELEVENLABS_TTS_MODEL || "eleven_v3",
         voice_settings: {
-          stability: 0.75,
-          similarity_boost: 0.95,
-          style: 0.00,
+          stability: 0.50,
+          similarity_boost: 0.75,
+          style: 0.50,
           use_speaker_boost: true,
         },
       }),
