@@ -945,7 +945,7 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
 }
 
 function RenderPanel() {
-  const [scope, setScope] = useState<"all" | "slides-only" | "videos-only" | "semana-1" | "semana-2" | "semana-3" | "semana-4">("all");
+  const [scope, setScope] = useState<"all" | "slides-only" | "videos-only" | "semana-1" | "semana-2" | "semana-3" | "semana-4" | "day-1" | "day-7" | "day-15" | "day-30">("day-1");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ runsUrl?: string; error?: string } | null>(null);
 
@@ -992,13 +992,17 @@ function RenderPanel() {
           disabled={running}
           className="bg-creme/5 rounded-lg px-4 py-3 text-creme outline-none cursor-pointer"
         >
-          <option value="all" className="bg-carvao">Tudo (60 posts)</option>
-          <option value="slides-only" className="bg-carvao">Só carrosséis (35)</option>
-          <option value="videos-only" className="bg-carvao">Só vídeos (26)</option>
-          <option value="semana-1" className="bg-carvao">Semana 1</option>
+          <option value="day-1" className="bg-carvao">Só dia 1 (TESTE — 2 posts, ~15 slides + 1 vídeo)</option>
+          <option value="day-7" className="bg-carvao">Só dia 7</option>
+          <option value="day-15" className="bg-carvao">Só dia 15</option>
+          <option value="day-30" className="bg-carvao">Só dia 30</option>
+          <option value="semana-1" className="bg-carvao">Semana 1 (14 posts)</option>
           <option value="semana-2" className="bg-carvao">Semana 2</option>
           <option value="semana-3" className="bg-carvao">Semana 3</option>
           <option value="semana-4" className="bg-carvao">Semana 4</option>
+          <option value="slides-only" className="bg-carvao">Só carrosséis (35)</option>
+          <option value="videos-only" className="bg-carvao">Só vídeos (26)</option>
+          <option value="all" className="bg-carvao">Tudo (60 posts)</option>
         </select>
       </label>
 

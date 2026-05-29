@@ -16,6 +16,10 @@ on:
           - semana-2
           - semana-3
           - semana-4
+          - day-1
+          - day-7
+          - day-15
+          - day-30
 
 jobs:
   render:
