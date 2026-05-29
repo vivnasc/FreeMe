@@ -110,14 +110,7 @@ async function generateTTS(text) {
       },
       body: JSON.stringify({
         text,
-        model_id: process.env.ELEVENLABS_TTS_MODEL || "eleven_turbo_v2_5",
-        language_code: "pt",
-        voice_settings: {
-          stability: 0.55,
-          similarity_boost: 0.90,
-          style: 0.15,
-          use_speaker_boost: true,
-        },
+        model_id: process.env.ELEVENLABS_TTS_MODEL || "eleven_v3",
       }),
     },
   );

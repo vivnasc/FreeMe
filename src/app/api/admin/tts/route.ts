@@ -4,9 +4,10 @@ import { getAdminSupabase, ensureBucket } from "@/lib/admin/supabase-admin";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "";
-// turbo_v2_5 suporta language_code (v3 nao) - forca fonemas PT em vez de BR.
-// Voz clonada e PT-PT, com language_code:"pt" o tokenizer escolhe PT correcto.
-const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_turbo_v2_5";
+// v3 e o modelo melhor para a voz clonada PT-PT da Vivianne.
+// Sem voice_settings: usa os defaults da propria voz clonada (mais naturais).
+// Sem language_code, sem previous_text - deixar a voz pura.
+const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_v3";
 const BUCKET = "freeme-assets";
 
 export async function POST(request: Request) {
@@ -37,13 +38,6 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         text,
         model_id: ELEVENLABS_MODEL,
-        language_code: "pt",       // turbo_v2_5 suporta - forca fonemas PT (nao BR)
-        voice_settings: {
-          stability: 0.55,
-          similarity_boost: 0.90,  // cola a voz clonada PT-PT
-          style: 0.15,             // baixo mas n zero para preservar entonacao
-          use_speaker_boost: true,
-        },
       }),
     },
   );
