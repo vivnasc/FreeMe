@@ -101,21 +101,17 @@ export function buildSlideHTML(slide, opts = {}) {
 
   switch (mode) {
     case "photo-cream": {
-      // Foto top, bloco areia/creme bottom 40% com texto terracota + bold ouro
+      // Foto domina (limpa ate 72%), transicao breve, cream zone so para texto (bottom 18%).
       bg = PALETTE.areia;
       const body = applyBold(slide.body, slide.bold, boldTerracota);
-      // Foto cheia (sem corte) + gradiente que comeca transparente e funde para areia.
-      // Texto fica na zona areia solida com handle no fundo.
-      // Foto domina (top 60%), cream zone so onde o texto vive (bottom 30%),
-      // transicao suave entre os dois (10%). Sem corte horizontal.
       textBox = `
         <div style="position:absolute;inset:0;background-image:url('${opts.photoUrl}');background-size:cover;background-position:center"></div>
-        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(243,228,214,0) 0%,rgba(243,228,214,0) 58%,rgba(243,228,214,0.25) 64%,rgba(243,228,214,0.75) 70%,${PALETTE.areia} 76%,${PALETTE.areia} 100%)"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(243,228,214,0) 0%,rgba(243,228,214,0) 72%,rgba(243,228,214,0.4) 78%,${PALETTE.areia} 82%,${PALETTE.areia} 100%)"></div>
         <div style="position:absolute;top:24px;left:36px;color:${PALETTE.creme};z-index:3">${brandMark(PALETTE.creme)}</div>
-        <div style="position:absolute;left:0;right:0;bottom:0;top:78%;padding:0 70px 100px;display:flex;flex-direction:column;justify-content:flex-end;z-index:3">
-          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:46px;line-height:1.28;color:${PALETTE.carvao}">${body}</p>
+        <div style="position:absolute;left:0;right:0;bottom:0;top:84%;padding:0 70px 90px;display:flex;flex-direction:column;justify-content:flex-end;z-index:3">
+          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:38px;line-height:1.25;color:${PALETTE.carvao}">${body}</p>
         </div>
-        <div style="position:absolute;bottom:32px;left:70px;z-index:5">${handleSig(PALETTE.barro)}</div>`;
+        <div style="position:absolute;bottom:28px;left:70px;z-index:5">${handleSig(PALETTE.barro)}</div>`;
       break;
     }
     case "photo-dark": {
