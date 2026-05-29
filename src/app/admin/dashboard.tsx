@@ -538,8 +538,43 @@ function StudioPanel({
     return d && c && r && c.ok !== false && r.ok !== false;
   })();
 
+  // Next Action: derivado do funil (padrao SyncHim "Próxima Acção" com borda dourada)
+  const nextAction = (() => {
+    if (!diagAllOk && Object.keys(diag).length === 0) {
+      return { title: "Corre o diagnóstico", desc: "Confirma envs + Claude + Replicate antes de gastar.", view: "studio" as MainView, label: "Ir ao Diagnóstico" };
+    }
+    if (funnel.draft === posts.length) {
+      return { title: `Gerar imagens (${totalMJ} prompts)`, desc: `Custo estimado ~$${(totalMJ * 0.07).toFixed(2)}. Começa com 3 carrosseis de teste.`, view: "imagens" as MainView, label: "Ir a Imagens →" };
+    }
+    if (funnel.draft + funnel.partial > 0) {
+      const falta = totalMJ - generatedMJ;
+      return { title: `Continuar geração (${falta} em falta)`, desc: `Reusa pool onde possível. ~$${(falta * 0.07).toFixed(2)} restantes.`, view: "imagens" as MainView, label: "Continuar →" };
+    }
+    if (funnel.rendered === 0) {
+      return { title: "Disparar render dos slides", desc: `${posts.length} posts com imagens prontas. GH Actions renderiza PNGs em ~15-30 min.`, view: "slides" as MainView, label: "Ir a Slides →" };
+    }
+    if (funnel.published === 0) {
+      return { title: "Exportar CSV Metricool", desc: `${funnel.rendered} posts prontos. Escolhe data início, gera CSV, importa.`, view: "distribuir" as MainView, label: "Ir a Distribuir →" };
+    }
+    return { title: "Campanha completa", desc: `${funnel.published} publicados. Tudo agendado.`, view: "studio" as MainView, label: "" };
+  })();
+
   return (
     <div className="flex flex-col gap-3">
+      {/* PRÓXIMA ACÇÃO (padrão SyncHim, borda dourada) */}
+      <div className="card" style={{ borderColor: "var(--ouro)" }}>
+        <div className="mini" style={{ marginBottom: 6, color: "var(--ouro)" }}>Próxima acção</div>
+        <h2 style={{ margin: 0, marginBottom: 6 }}>{nextAction.title}</h2>
+        <p className="muted" style={{ fontSize: 13, lineHeight: 1.6, marginBottom: nextAction.label ? 14 : 0 }}>
+          {nextAction.desc}
+        </p>
+        {nextAction.label && (
+          <button onClick={() => onNavigate(nextAction.view)} className="btn primary">
+            {nextAction.label}
+          </button>
+        )}
+      </div>
+
       {/* FUNIL DE PRODUÇÃO (padrão SyncHim §CIRCUITO-COMPLETO) */}
       <div className="card">
         <div className="mini" style={{ marginBottom: 12 }}>Funil de produção</div>

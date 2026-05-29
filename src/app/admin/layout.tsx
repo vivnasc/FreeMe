@@ -42,6 +42,9 @@ export default async function AdminLayout({
             <AdminNavLink href="/admin/biblioteca">
               <span className="nav-num">·</span> Biblioteca
             </AdminNavLink>
+            <AdminNavLink href="/admin/render-jobs">
+              <span className="nav-num">·</span> Render Jobs
+            </AdminNavLink>
             <AdminNavLink href="/admin/audio">
               <span className="nav-num">·</span> Áudio (Studio)
             </AdminNavLink>
