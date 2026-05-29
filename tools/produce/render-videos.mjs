@@ -123,8 +123,8 @@ async function generateTTS(text) {
   return Buffer.from(await res.arrayBuffer());
 }
 
-async function renderSlidePNG(browser, slide, photoUrl, dayLabel) {
-  const html = buildSlideHTML(slide, { photoUrl, dayLabel, isVideo: true });
+async function renderSlidePNG(browser, slide, photoUrl, dayLabel, opts = {}) {
+  const html = buildSlideHTML(slide, { photoUrl, dayLabel, isVideo: true, ...opts });
   const page = await browser.newPage();
   await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
   await page.setContent(html, { waitUntil: "networkidle0" });
@@ -177,7 +177,10 @@ async function buildVideo(post, workDir) {
     const slide = slides[i];
     console.log(`  slide ${i + 1}/${slides.length}: ${slide.body.slice(0, 40)}...`);
 
-    const pngBuf = await renderSlidePNG(browser, slide, photoUrl, dayLabel);
+    const pngBuf = await renderSlidePNG(browser, slide, photoUrl, dayLabel, {
+      slideIndex: i + 1,
+      totalSlides: slides.length,
+    });
     const pngPath = path.join(workDir, `slide-${i}.png`);
     await fs.writeFile(pngPath, pngBuf);
 

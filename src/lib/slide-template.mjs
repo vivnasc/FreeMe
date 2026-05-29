@@ -69,16 +69,29 @@ function handleSig(color) {
   return `<div style="color:${color};font-family:'Outfit',sans-serif;font-size:18px;letter-spacing:.05em;opacity:.7">@vivianne.dos.santos</div>`;
 }
 
-function swipeHint(color, show) {
-  if (!show) return "";
-  return `<div style="position:absolute;bottom:48px;left:60px;color:${color};font-family:'Outfit',sans-serif;font-size:16px;letter-spacing:.18em;opacity:.6">DESLIZA PARA O LADO →</div>`;
+// Ghost number ornamental (estilo SyncHim 04) — grande, faded, top-right
+function ghostNum(num, total, color) {
+  if (!num || !total || num < 1) return "";
+  const padded = String(num).padStart(2, "0");
+  return `<div style="position:absolute;top:80px;right:80px;font-family:'Fraunces',serif;font-style:italic;font-size:280px;line-height:.85;color:${color};opacity:.13;pointer-events:none;z-index:1">${padded}</div>`;
+}
+
+// Dots indicator slides (estilo IG carousel) — bottom center
+function slideDots(num, total, color) {
+  if (!num || !total || total <= 1) return "";
+  const dots = Array.from({ length: total }, (_, i) =>
+    `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};opacity:${i === num - 1 ? .9 : .25}"></span>`
+  ).join("");
+  return `<div style="position:absolute;bottom:48px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;z-index:5">${dots}</div>`;
 }
 
 export function buildSlideHTML(slide, opts = {}) {
   const { w, h } = dimensions(slide.layout);
   const hasPhoto = Boolean(opts.photoUrl);
   const mode = visualModeFor(slide.layout, hasPhoto);
-  const showSwipe = opts.isCarousel && !opts.isLastSlide && slide.layout !== "assinatura";
+  const slideIndex = opts.slideIndex; // 1-based
+  const totalSlides = opts.totalSlides;
+  const showDots = opts.isCarousel && totalSlides && totalSlides > 1 && slide.layout !== "assinatura";
 
   let bg = PALETTE.creme;
   let textBox = "";
@@ -119,61 +132,83 @@ export function buildSlideHTML(slide, opts = {}) {
     case "type-on-creme": {
       bg = PALETTE.creme;
       const body = applyBold(slide.body, slide.bold, boldTerracota);
+      const ghost = ghostNum(slideIndex, totalSlides, PALETTE.barro);
       textBox = `
-        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.barro}">${brandMark(PALETTE.barro)}</div>
-        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;align-items:center">
-          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:54px;line-height:1.4;color:${PALETTE.carvao};max-width:900px">${body}</p>
+        ${ghost}
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.barro};z-index:2">${brandMark(PALETTE.barro)}</div>
+        <div style="position:absolute;inset:0;padding:160px 80px 180px;display:flex;align-items:center;z-index:2">
+          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:64px;line-height:1.32;color:${PALETTE.carvao};max-width:920px">${body}</p>
         </div>
-        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.barro)}</div>`;
+        <div style="position:absolute;bottom:48px;left:80px;z-index:5">${handleSig(PALETTE.barro)}</div>`;
       break;
     }
     case "type-on-areia": {
       bg = PALETTE.areia;
       const body = applyBold(slide.body, slide.bold, boldTerracota);
+      const ghost = ghostNum(slideIndex, totalSlides, PALETTE.barro);
       textBox = `
-        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.barro}">${brandMark(PALETTE.barro)}</div>
-        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;align-items:center;justify-content:center">
-          <p style="font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:62px;line-height:1.3;color:${PALETTE.barro};text-align:center;max-width:880px">&ldquo;${body}&rdquo;</p>
+        ${ghost}
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.barro};z-index:2">${brandMark(PALETTE.barro)}</div>
+        <div style="position:absolute;inset:0;padding:160px 80px 180px;display:flex;align-items:center;justify-content:center;z-index:2">
+          <p style="font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:68px;line-height:1.3;color:${PALETTE.barro};text-align:center;max-width:900px">&ldquo;${body}&rdquo;</p>
         </div>
-        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.barro)}</div>`;
+        <div style="position:absolute;bottom:48px;left:80px;z-index:5">${handleSig(PALETTE.barro)}</div>`;
       break;
     }
     case "type-on-barro": {
       bg = PALETTE.barro;
       const body = applyBold(slide.body, slide.bold, boldOuro);
+      const ghost = ghostNum(slideIndex, totalSlides, PALETTE.creme);
       textBox = `
-        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
-        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;align-items:center">
-          <p style="font-family:'Fraunces',serif;font-weight:400;font-size:68px;line-height:1.2;color:${PALETTE.creme};max-width:900px">${body}</p>
+        ${ghost}
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme};z-index:2">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;inset:0;padding:160px 80px 180px;display:flex;align-items:center;z-index:2">
+          <p style="font-family:'Fraunces',serif;font-weight:400;font-size:78px;line-height:1.18;color:${PALETTE.creme};max-width:920px">${body}</p>
         </div>
-        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.creme)}</div>`;
+        <div style="position:absolute;bottom:48px;left:80px;z-index:5">${handleSig(PALETTE.creme)}</div>`;
       break;
     }
     case "type-on-salvia": {
-      // Verde mais profundo (Vivianne: "mais profundo"), nao o salvia da UI
       const salviaProfunda = "#5A6857";
       bg = salviaProfunda;
       const body = applyBold(slide.body, slide.bold, PALETTE.ouro);
+      const ghost = ghostNum(slideIndex, totalSlides, PALETTE.creme);
       textBox = `
-        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
-        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
-          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:54px;line-height:1.32;color:${PALETTE.creme};max-width:900px;margin-bottom:60px">${body}</p>
-          <div style="background:${PALETTE.creme};color:${salviaProfunda};padding:24px 56px;border-radius:999px;font-family:'Outfit',sans-serif;font-size:30px;font-weight:500">freeme.viviannedossantos.com</div>
+        ${ghost}
+        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme};z-index:2">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;inset:0;padding:160px 80px 180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:2">
+          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:62px;line-height:1.3;color:${PALETTE.creme};max-width:920px;margin-bottom:64px">${body}</p>
+          <div style="background:${PALETTE.creme};color:${salviaProfunda};padding:26px 60px;border-radius:999px;font-family:'Outfit',sans-serif;font-size:32px;font-weight:500">freeme.viviannedossantos.com</div>
         </div>
-        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.creme)}</div>`;
+        <div style="position:absolute;bottom:48px;left:80px;z-index:5">${handleSig(PALETTE.creme)}</div>`;
       break;
     }
     case "type-on-carvao": {
       bg = PALETTE.carvao;
-      const body = applyBold(slide.body, slide.bold, boldOuro);
       const isAssinatura = slide.layout === "assinatura";
-      textBox = `
-        <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
-        <div style="position:absolute;inset:0;padding:140px 80px;display:flex;flex-direction:column;align-items:${isAssinatura ? "center" : "flex-start"};justify-content:center;text-align:${isAssinatura ? "center" : "left"}">
-          ${isAssinatura ? `<div style="color:${PALETTE.terracota};margin-bottom:48px">${SPIRAL_SVG.replace("36", "92").replace("36", "92")}</div>` : ""}
-          <p style="font-family:'${isAssinatura ? "Fraunces',serif" : "Outfit',sans-serif"}';font-${isAssinatura ? "style:italic;font-" : ""}weight:${isAssinatura ? 400 : 300};font-size:${isAssinatura ? 48 : 70}px;line-height:1.3;color:${PALETTE.creme};max-width:900px">${body}</p>
-        </div>
-        <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.creme)}</div>`;
+      const ghost = isAssinatura ? "" : ghostNum(slideIndex, totalSlides, PALETTE.creme);
+      if (isAssinatura) {
+        // Assinatura redesenhada: spiral grande + nome + tagline + linha + handle
+        textBox = `
+          <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 80px">
+            <div style="color:${PALETTE.terracota};margin-bottom:56px;width:140px;height:140px">${SPIRAL_SVG.replace('width="36" height="36"','width="140" height="140"').replace('stroke-width="22"','stroke-width="18"')}</div>
+            <p style="font-family:'Fraunces',serif;font-style:italic;font-weight:400;font-size:60px;color:${PALETTE.creme};margin-bottom:18px">Vivianne dos Santos</p>
+            <div style="width:80px;height:1px;background:${PALETTE.terracota};opacity:.6;margin-bottom:18px"></div>
+            <p style="font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:36px;color:${PALETTE.terracota};letter-spacing:.04em;margin-bottom:64px">A Travessia da Mãe</p>
+            <p style="font-family:'Outfit',sans-serif;font-size:24px;color:${PALETTE.creme};opacity:.6;letter-spacing:.06em">@vivianne.dos.santos</p>
+            <p style="font-family:'Outfit',sans-serif;font-size:20px;color:${PALETTE.creme};opacity:.4;letter-spacing:.04em;margin-top:8px">freeme.viviannedossantos.com</p>
+          </div>`;
+      } else {
+        const body = applyBold(slide.body, slide.bold, boldOuro);
+        textBox = `
+          ${ghost}
+          <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme};z-index:2">${brandMark(PALETTE.creme)}</div>
+          <div style="position:absolute;inset:0;padding:160px 80px 180px;display:flex;align-items:center;z-index:2">
+            <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:82px;line-height:1.22;color:${PALETTE.creme};max-width:920px">${body}</p>
+          </div>
+          <div style="position:absolute;bottom:48px;left:80px;z-index:5">${handleSig(PALETTE.creme)}</div>`;
+      }
       break;
     }
   }
@@ -182,5 +217,5 @@ export function buildSlideHTML(slide, opts = {}) {
 <html><head><meta charset="UTF-8" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Outfit:wght@200;300;400;500;600&display=block" rel="stylesheet" />
 <style>* { margin:0; padding:0; box-sizing:border-box } html,body { width:${w}px; height:${h}px; overflow:hidden } body { background:${bg}; position:relative }</style>
-</head><body>${textBox}${swipeHint(PALETTE.creme, showSwipe)}<script>window.READY=true</script></body></html>`;
+</head><body>${textBox}${slideDots(slideIndex, totalSlides, mode.startsWith("photo") || mode.includes("barro") || mode.includes("salvia") || mode.includes("carvao") ? PALETTE.creme : PALETTE.barro)}<script>window.READY=true</script></body></html>`;
 }

@@ -110,7 +110,15 @@ async function renderOne(browser, post, slide, slideIdx, photoSlideIdxs) {
   const photoUrl = photoIdx !== undefined ? await getMJPhotoUrl(post.day, post.slot, photoIdx) : null;
 
   const dayLabel = `D${post.day} · ${post.slot === "morning" ? "10h" : "13h"}`;
-  const html = buildSlideHTML(slide, { photoUrl, dayLabel, isVideo: post.type === "video" });
+  const html = buildSlideHTML(slide, {
+    photoUrl,
+    dayLabel,
+    isVideo: post.type === "video",
+    isCarousel: post.type === "carousel",
+    isLastSlide: slideIdx === post.slides.length - 1,
+    slideIndex: slideIdx + 1,
+    totalSlides: post.slides.length,
+  });
 
   const isVideo = post.type === "video";
   const w = isVideo ? 1080 : 1080;

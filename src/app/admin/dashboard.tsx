@@ -374,7 +374,7 @@ export function AdminDashboard() {
                     const url = slideImages[sid];
                     return (
                       <div key={i} style={{ flexShrink: 0 }}>
-                        <SlidePreview slide={slide} post={p} photoUrl={url} isLastSlide={i === p.slides.length - 1} width={140} />
+                        <SlidePreview slide={slide} post={p} photoUrl={url} isLastSlide={i === p.slides.length - 1} slideIndex={i + 1} totalSlides={p.slides.length} width={140} />
                         <p className="mini" style={{ fontSize: 9, marginTop: 4 }}>{i + 1} · {slide.layout}</p>
                       </div>
                     );
@@ -1080,6 +1080,8 @@ function PostEditorView({
               post={post}
               photoUrl={activeImageUrl}
               isLastSlide={activeIdx === post.slides.length - 1}
+              slideIndex={activeIdx + 1}
+              totalSlides={post.slides.length}
               width={300}
             />
           )}
@@ -1233,12 +1235,16 @@ function SlidePreview({
   photoUrl,
   width = 220,
   isLastSlide,
+  slideIndex,
+  totalSlides,
 }: {
   slide: { layout: string; body: string; bold?: string[] };
   post: ContentPost;
   photoUrl?: string;
   width?: number;
   isLastSlide?: boolean;
+  slideIndex?: number;
+  totalSlides?: number;
 }) {
   const isVideo = post.type === "video";
   const baseW = 1080;
@@ -1251,8 +1257,10 @@ function SlidePreview({
         isCarousel: post.type === "carousel",
         isLastSlide: !!isLastSlide,
         isVideo,
+        slideIndex,
+        totalSlides,
       }) as string,
-    [slide, photoUrl, post.type, isLastSlide, isVideo],
+    [slide, photoUrl, post.type, isLastSlide, isVideo, slideIndex, totalSlides],
   );
 
   return (
@@ -1267,7 +1275,6 @@ function SlidePreview({
     >
       <iframe
         srcDoc={html}
-        sandbox="allow-same-origin"
         style={{
           width: baseW,
           height: baseH,
@@ -1626,6 +1633,17 @@ function BulkMJ({
     runGeneration(missing);
   }
 
+  function retryFailed() {
+    const failed = allPrompts.filter((p) => errors[p.key] && !generated[p.key]);
+    if (failed.length === 0) {
+      alert("Sem erros para retomar.");
+      return;
+    }
+    const cost = (failed.length * 0.07).toFixed(2);
+    if (!confirm(`Retentar ${failed.length} item(s) que falharam. Custo estimado: ~$${cost}`)) return;
+    runGeneration(failed);
+  }
+
   function clearAll() {
     if (!confirm("Apagar referências locais às imagens e prompts gerados? (Não apaga do Supabase Storage, só do teu navegador)")) return;
     setGenerated({});
@@ -1715,6 +1733,11 @@ function BulkMJ({
               ? `A gerar ${progress.done}/${progress.total}...`
               : `Produzir todas (${allPrompts.length - Object.keys(generated).length} em falta · ~$${((allPrompts.length - Object.keys(generated).length) * 0.07).toFixed(2)})`}
           </button>
+          {Object.keys(errors).length > 0 && (
+            <button onClick={retryFailed} disabled={running} className="text-xs rounded-full bg-red-500/20 border border-red-500/40 px-4 py-2 text-red-200 hover:bg-red-500/30">
+              Tentar de novo ({Object.keys(errors).length} erros)
+            </button>
+          )}
           <button onClick={syncFromStorage} disabled={running} className="text-xs rounded-full bg-creme/10 px-3 py-2 text-creme hover:bg-creme/20">
             Sincronizar com Storage
           </button>
