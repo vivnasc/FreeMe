@@ -1023,13 +1023,15 @@ function BulkMJ({
   }, [posts]);
 
   type Item = (typeof allPrompts)[number];
+  type ReuseStrategy = "prefer-existing" | "always-new" | "reuse-only";
+  const [strategy, setStrategy] = useState<ReuseStrategy>("always-new");
+  const [testN, setTestN] = useState(3);
 
   async function generateBatch(items: Item[]): Promise<{
     urls: Record<string, string>;
     prompts: Record<string, string>;
     errors: Record<string, string>;
   }> {
-    // Parse key "D{day}-{slot}-{idx}" para enviar para a API
     const apiItems = items.map((i) => {
       const m = /^D(\d+)-(morning|evening)-(\d+)$/.exec(i.key);
       if (!m) throw new Error(`Key invalida: ${i.key}`);
@@ -1044,7 +1046,7 @@ function BulkMJ({
     const res = await fetch("/api/admin/generate-mj", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: apiItems }),
+      body: JSON.stringify({ items: apiItems, strategy }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as {
@@ -1094,9 +1096,22 @@ function BulkMJ({
     setProgress(null);
   }
 
-  function runTest3() {
-    const sample = allPrompts.slice(0, 3);
+  // Padrao SyncHim §3: modo teste com N carrosseis completos (todos os prompts dos N primeiros posts)
+  function runTestN() {
+    const seen = new Set<string>();
+    const samplePosts: string[] = [];
+    for (const p of allPrompts) {
+      const key = p.postKey;
+      if (!seen.has(key)) {
+        seen.add(key);
+        samplePosts.push(key);
+        if (samplePosts.length >= testN) break;
+      }
+    }
+    const sample = allPrompts.filter((p) => samplePosts.includes(p.postKey));
     if (sample.length === 0) return;
+    const cost = strategy === "reuse-only" ? "0.00 (so pool)" : (sample.length * 0.07).toFixed(2);
+    if (!confirm(`Teste de ${testN} carrosseis (${sample.length} imagens). Custo estimado: ~$${cost}`)) return;
     runGeneration(sample);
   }
 
@@ -1106,7 +1121,8 @@ function BulkMJ({
       alert("Todos os prompts já foram gerados. Apaga do localStorage se quiseres regerar.");
       return;
     }
-    if (!confirm(`Gerar ${missing.length} imagem(s) (Claude prompt + Replicate Flux 1.1 Pro Ultra)? Custo estimado: ~$${(missing.length * 0.07).toFixed(2)}`)) return;
+    const cost = strategy === "reuse-only" ? "0.00 (so pool)" : (missing.length * 0.07).toFixed(2);
+    if (!confirm(`Gerar ${missing.length} imagem(s) com strategy "${strategy}". Custo estimado: ~$${cost}`)) return;
     runGeneration(missing);
   }
 
@@ -1126,24 +1142,53 @@ function BulkMJ({
   return (
     <div>
       <div className="rounded-xl bg-salvia/15 border border-salvia/30 p-4 mb-4">
-        <p className="text-sm text-creme font-medium mb-2">Gerar imagens automaticamente (Claude → Replicate Flux 1.1 Pro Ultra)</p>
+        <p className="text-sm text-creme font-medium mb-2">Gerar imagens (Claude → Replicate Flux 1.1 Pro Ultra)</p>
         <p className="text-xs text-creme/70 leading-relaxed mb-3">
-          Para cada slide: Claude lê a mensagem e gera um prompt específico (sem close-up de caras, pessoas em interacção real, imagem ecoa a mensagem). Depois Flux 1.1 Pro Ultra gera a foto. Custo: ~$0.07 por imagem (Claude + Replicate).
+          Claude inventa prompt por slide. Pool partilha imagens entre slots da mesma (layout, categoria) para poupar.
         </p>
+        <div className="flex gap-3 flex-wrap items-center mb-3">
+          <label className="flex items-center gap-2 text-xs text-creme/80">
+            Estratégia:
+            <select
+              value={strategy}
+              onChange={(e) => setStrategy(e.target.value as ReuseStrategy)}
+              disabled={running}
+              className="bg-carvao/60 text-creme rounded px-2 py-1 text-xs"
+            >
+              <option value="always-new">Sempre gerar nova</option>
+              <option value="prefer-existing">Reusar quando houver match</option>
+              <option value="reuse-only">Só reusar (não gera)</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-xs text-creme/80">
+            Teste · N carrosseis:
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={testN}
+              onChange={(e) => setTestN(Number(e.target.value) || 3)}
+              disabled={running}
+              className="bg-carvao/60 text-creme rounded px-2 py-1 text-xs w-16"
+            />
+          </label>
+        </div>
         <div className="flex gap-2 flex-wrap items-center">
           <button
-            onClick={runTest3}
+            onClick={runTestN}
             disabled={running}
             className="text-xs rounded-full bg-terracota px-4 py-2 text-creme hover:bg-terracota/80 disabled:opacity-50"
           >
-            {running && progress?.total === 3 ? `A gerar ${progress.done}/3...` : "Testar 3 amostras (~$0.18)"}
+            {running && progress && progress.total <= testN * 3
+              ? `A gerar ${progress.done}/${progress.total}...`
+              : `Testar ${testN} carrosseis completos`}
           </button>
           <button
             onClick={runAllMissing}
             disabled={running}
             className="text-xs rounded-full bg-salvia px-4 py-2 text-creme hover:bg-salvia/80 disabled:opacity-50"
           >
-            {running && progress && progress.total > 3
+            {running && progress && progress.total > testN * 3
               ? `A gerar ${progress.done}/${progress.total}...`
               : `Produzir todas (${allPrompts.length - Object.keys(generated).length} em falta · ~$${((allPrompts.length - Object.keys(generated).length) * 0.07).toFixed(2)})`}
           </button>

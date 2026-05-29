@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/admin/auth";
 import { getAdminSupabase, ensureBucket } from "@/lib/admin/supabase-admin";
 import { generateImage, type AspectRatio } from "@/lib/admin/replicate";
 import { generateImagePrompt } from "@/lib/admin/claude";
+import { findReusableImage, invalidatePoolCache, type ReuseStrategy } from "@/lib/admin/image-pool";
 import { ALL_POSTS } from "@/content/content-calendar";
 import { getMJPrompts } from "@/content/mj-prompts";
 
@@ -45,6 +46,7 @@ interface GenerateResult {
   prompt: string | null;
   rationale: string | null;
   error: string | null;
+  reused?: boolean;
 }
 
 export async function POST(request: Request) {
@@ -52,7 +54,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { items } = (await request.json()) as { items: GenerateItem[] };
+  const { items, strategy = "always-new" } = (await request.json()) as {
+    items: GenerateItem[];
+    strategy?: ReuseStrategy;
+  };
 
   if (!items?.length) {
     return NextResponse.json({ error: "items required" }, { status: 400 });
@@ -69,20 +74,47 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Bucket setup: ${e}` }, { status: 500 });
   }
 
+  // Padrao SyncHim: exclude URLs ja reusadas no mesmo lote para nao repetir
+  const usedInThisBatch = new Set<string>();
+
   const results: GenerateResult[] = await Promise.all(
     items.map(async (item): Promise<GenerateResult> => {
       try {
         const post = ALL_POSTS.find((p) => p.day === item.day && p.slot === item.slot);
         if (!post) throw new Error(`Post nao encontrado para D${item.day}-${item.slot}`);
 
-        // O slideIndex no MJ_PROMPTS pode nao corresponder a um slide existente directamente.
-        // Usamos a metadata original para determinar qual slide receber a foto e o usage.
         const slots = getMJPrompts(item.day, item.slot);
         const slotMeta = slots[item.slideIndex];
         if (!slotMeta) throw new Error(`Slot index ${item.slideIndex} nao definido`);
 
         const slide = post.slides[slotMeta.slideIndex];
         if (!slide) throw new Error(`Slide ${slotMeta.slideIndex} nao existe no post`);
+
+        // Strategy prefer-existing | reuse-only: procura no pool primeiro
+        if (strategy === "prefer-existing" || strategy === "reuse-only") {
+          const reused = await findReusableImage(slide.layout, post.categoria, post.type, usedInThisBatch);
+          if (reused) {
+            usedInThisBatch.add(reused.url);
+            return {
+              key: item.key,
+              url: reused.url,
+              prompt: null,
+              rationale: `Reusada do pool (${reused.key})`,
+              error: null,
+              reused: true,
+            };
+          }
+          if (strategy === "reuse-only") {
+            return {
+              key: item.key,
+              url: null,
+              prompt: null,
+              rationale: null,
+              error: "Pool sem match para esta (layout, categoria) — reuse-only nao gera novas",
+            };
+          }
+          // prefer-existing: cai para geracao nova
+        }
 
         // 1. Claude gera o prompt MJ a partir do conteúdo do slide (com retry)
         const promptResult = await withRetry(
@@ -126,8 +158,11 @@ export async function POST(request: Request) {
         if (upErr) throw new Error(`Upload falhou: ${upErr.message}`);
 
         const { data: urlData } = supabase.storage
-          .from("course-assets")
+          .from(BUCKET)
           .getPublicUrl(path);
+
+        // Invalida cache do pool para a proxima chamada ja ver esta imagem
+        invalidatePoolCache();
 
         return {
           key: item.key,
