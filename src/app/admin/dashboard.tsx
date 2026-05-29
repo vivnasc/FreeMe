@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ALL_POSTS } from "@/content/content-calendar";
 import { type ContentPost } from "@/content/content-types";
@@ -354,41 +354,53 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* LISTA */}
+      {/* LISTA — table.t SyncHim */}
       {view === "conteudo" && conteudoSub === "lista" && (
-        <div className="rounded-2xl border border-creme/10 overflow-hidden">
-          <div className="grid grid-cols-[80px_70px_70px_110px_1fr_60px_70px] gap-3 px-4 py-3 border-b border-creme/10 text-[10px] uppercase tracking-wider text-creme/40">
-            <span>Post</span>
-            <span>Tipo</span>
-            <span>Hora</span>
-            <span>Categoria</span>
-            <span>Título</span>
-            <span className="text-center">Slides</span>
-            <span className="text-center">MJ</span>
-          </div>
-          {filtered.map((p) => {
-            const mjCount = getMJPrompts(p.day, p.slot).length;
-            return (
-              <button
-                key={postKey(p)}
-                onClick={() => { setSelected(p); setDetailTab("slides"); }}
-                className="w-full grid grid-cols-[80px_70px_70px_110px_1fr_60px_70px] gap-3 px-4 py-3 border-b border-creme/5 hover:bg-creme/5 text-left items-center"
-              >
-                <span className="text-terracota font-medium text-sm">{postKey(p)}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded justify-self-start ${
-                  p.type === "carousel" ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
-                }`}>{p.type === "carousel" ? "Carrossel" : "Vídeo"}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded justify-self-start ${
-                  p.slot === "morning" ? "bg-amber-500/15 text-amber-400" : "bg-indigo-500/15 text-indigo-400"
-                }`}>{p.time}</span>
-                <span className="text-xs text-creme/50">{p.categoria}</span>
-                <span className="text-sm text-creme/85 truncate">{p.title}</span>
-                <span className="text-xs text-creme/40 text-center">{p.slides.length}</span>
-                <span className={`text-xs text-center ${mjCount === 0 ? "text-red-400/70" : "text-creme/50"}`}>{mjCount}</span>
-              </button>
-            );
-          })}
-        </div>
+        <table className="t">
+          <thead>
+            <tr>
+              <th style={{ width: 80 }}>Post</th>
+              <th style={{ width: 90 }}>Tipo</th>
+              <th style={{ width: 70 }}>Hora</th>
+              <th style={{ width: 110 }}>Categoria</th>
+              <th>Título</th>
+              <th style={{ width: 60, textAlign: "center" }}>Slides</th>
+              <th style={{ width: 60, textAlign: "center" }}>MJ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((p) => {
+              const mjCount = getMJPrompts(p.day, p.slot).length;
+              return (
+                <tr
+                  key={postKey(p)}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => { setSelected(p); setDetailTab("slides"); }}
+                >
+                  <td style={{ color: "var(--terracota)", fontWeight: 500 }}>{postKey(p)}</td>
+                  <td>
+                    <span className="pill" style={{
+                      borderColor: p.type === "carousel" ? "var(--terracota)" : "var(--salvia)",
+                      color: p.type === "carousel" ? "var(--terracota)" : "var(--salvia)",
+                    }}>
+                      {p.type === "carousel" ? "Carrossel" : "Vídeo"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="pill" style={{
+                      borderColor: p.slot === "morning" ? "var(--ouro)" : "var(--terracota)",
+                      color: p.slot === "morning" ? "var(--ouro)" : "var(--terracota)",
+                    }}>{p.time}</span>
+                  </td>
+                  <td className="muted" style={{ fontSize: 12 }}>{p.categoria}</td>
+                  <td style={{ color: "var(--texto)" }}>{p.title}</td>
+                  <td className="muted" style={{ textAlign: "center", fontSize: 12 }}>{p.slides.length}</td>
+                  <td style={{ textAlign: "center", fontSize: 12, color: mjCount === 0 ? "var(--bordeaux)" : "var(--texto-suave)" }}>{mjCount}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       )}
 
       {/* CALENDÁRIO */}
@@ -1143,99 +1155,140 @@ function BulkMJ({
         </div>
       )}
 
-      {/* Grelha: 60 posts agrupados, cada um com até 2 thumbnails */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {posts.map((post) => {
-          const postPrompts = allPrompts.filter((p) => p.key.startsWith(`D${post.day}-${post.slot}-`));
-          if (postPrompts.length === 0) return null;
-          const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
-          const generatedCount = postPrompts.filter((p) => generated[p.key]).length;
-          const errorCount = postPrompts.filter((p) => errors[p.key]).length;
-          const isExpanded = expandedKey === pKey;
+      {/* Lista densa estilo SyncHim — 1 linha por post */}
+      <table className="t">
+        <thead>
+          <tr>
+            <th style={{ width: 80 }}>Post</th>
+            <th style={{ width: 70 }}>Tipo</th>
+            <th>Título</th>
+            <th style={{ width: 90 }}>Estado</th>
+            <th style={{ width: 130 }}>Preview</th>
+            <th style={{ width: 80 }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {posts.map((post) => {
+            const postPrompts = allPrompts.filter((p) => p.key.startsWith(`D${post.day}-${post.slot}-`));
+            if (postPrompts.length === 0) return null;
+            const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
+            const generatedCount = postPrompts.filter((p) => generated[p.key]).length;
+            const errorCount = postPrompts.filter((p) => errors[p.key]).length;
+            const isExpanded = expandedKey === pKey;
+            const status =
+              errorCount > 0 ? "failed" :
+              generatedCount === postPrompts.length ? "ok" :
+              generatedCount > 0 ? "partial" : "pending";
+            const statusLabel =
+              status === "ok" ? `${generatedCount}/${postPrompts.length}` :
+              status === "failed" ? `${errorCount} erro` :
+              status === "partial" ? `${generatedCount}/${postPrompts.length}` :
+              "pendente";
 
-          return (
-            <div key={pKey} className="rounded-xl bg-creme/5 overflow-hidden flex flex-col">
-              <button
-                onClick={() => setExpandedKey(isExpanded ? null : pKey)}
-                className="w-full text-left"
-              >
-                <div className="grid grid-cols-2 gap-px bg-carvao/40">
-                  {postPrompts.map((mj) => {
-                    const url = generated[mj.key];
-                    const err = errors[mj.key];
-                    return (
-                      <div
-                        key={mj.key}
-                        className="relative bg-carvao/60"
-                        style={{ aspectRatio: post.type === "carousel" ? "4/5" : "9/16" }}
-                      >
-                        {url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className={`text-[10px] ${err ? "text-red-400/80" : "text-creme/30"}`}>
-                              {err ? "erro" : `slide ${mj.slideIndex}`}
-                            </span>
+            return (
+              <Fragment key={pKey}>
+                <tr style={{ cursor: "pointer" }} onClick={() => setExpandedKey(isExpanded ? null : pKey)}>
+                  <td style={{ color: "var(--terracota)", fontWeight: 500 }}>{pKey}</td>
+                  <td>
+                    <span className="pill" style={{
+                      borderColor: post.type === "carousel" ? "var(--terracota)" : "var(--salvia)",
+                      color: post.type === "carousel" ? "var(--terracota)" : "var(--salvia)",
+                    }}>
+                      {post.type === "carousel" ? "Carrossel" : "Vídeo"}
+                    </span>
+                  </td>
+                  <td style={{ color: "var(--texto)" }}>{post.title}</td>
+                  <td><span className={`pill ${status}`}>{statusLabel}</span></td>
+                  <td>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {postPrompts.map((mj) => {
+                        const url = generated[mj.key];
+                        const err = errors[mj.key];
+                        return (
+                          <div
+                            key={mj.key}
+                            style={{
+                              width: 32, height: 40,
+                              borderRadius: 3,
+                              background: "var(--bg)",
+                              border: `1px solid ${err ? "var(--bordeaux)" : "var(--linha)"}`,
+                              overflow: "hidden",
+                              position: "relative",
+                            }}
+                          >
+                            {url && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            )}
                           </div>
-                        )}
+                        );
+                      })}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <span className="muted" style={{ fontSize: 11 }}>{isExpanded ? "▾" : "▸"}</span>
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr>
+                    <td colSpan={6} style={{ background: "var(--bg)", padding: "12px 16px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {postPrompts.map((mj) => {
+                          const url = generated[mj.key];
+                          const err = errors[mj.key];
+                          return (
+                            <div key={mj.key} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                              <div style={{
+                                width: 80,
+                                aspectRatio: post.type === "carousel" ? "4/5" : "9/16",
+                                background: "var(--bg-card)",
+                                border: `1px solid ${err ? "var(--bordeaux)" : "var(--linha)"}`,
+                                borderRadius: 4,
+                                overflow: "hidden",
+                                flexShrink: 0,
+                              }}>
+                                {url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                ) : (
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 10, color: "var(--texto-suave)" }}>
+                                    slide {mj.slideIndex}
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div className="row" style={{ marginBottom: 4, gap: 8 }}>
+                                  <span className="mini">slide {mj.slideIndex} · {mj.usage}</span>
+                                  {url && <span style={{ color: "var(--salvia)", fontSize: 11 }}>✓ gerada</span>}
+                                  {claudePrompts[mj.key] && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); onCopy(claudePrompts[mj.key], mj.key); }}
+                                      className="btn"
+                                      style={{ marginLeft: "auto", fontSize: 11, padding: "2px 8px" }}
+                                    >
+                                      {copiedField === mj.key ? "Copiado" : "Copiar prompt"}
+                                    </button>
+                                  )}
+                                </div>
+                                {claudePrompts[mj.key] ? (
+                                  <pre className="json" style={{ fontSize: 11 }}>{claudePrompts[mj.key]}</pre>
+                                ) : (
+                                  <p className="muted" style={{ fontSize: 12 }}>Ainda não gerada · prompt será criado pelo Claude no momento da geração.</p>
+                                )}
+                                {err && <p style={{ color: "var(--bordeaux)", fontSize: 11, marginTop: 4 }}>{err}</p>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                  {postPrompts.length === 1 && (
-                    <div className="bg-carvao/30" style={{ aspectRatio: post.type === "carousel" ? "4/5" : "9/16" }} />
-                  )}
-                </div>
-                <div className="px-3 py-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-terracota font-medium">{pKey}</span>
-                    <span className={`text-[9px] px-1 py-0.5 rounded ${
-                      post.type === "carousel" ? "bg-terracota/15 text-terracota" : "bg-salvia/15 text-salvia"
-                    }`}>{post.type === "carousel" ? "C" : "V"}</span>
-                  </div>
-                  <span className="text-[10px] text-creme/40">
-                    {generatedCount}/{postPrompts.length}
-                    {errorCount > 0 && <span className="text-red-400/70"> · {errorCount}!</span>}
-                  </span>
-                </div>
-              </button>
-              {isExpanded && (
-                <div className="border-t border-creme/10 px-3 py-3 flex flex-col gap-3 bg-carvao/40">
-                  <p className="text-[11px] text-creme/50 italic">{post.title}</p>
-                  {postPrompts.map((mj) => {
-                    const url = generated[mj.key];
-                    const err = errors[mj.key];
-                    return (
-                      <div key={mj.key} className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-creme/40">
-                            slide {mj.slideIndex} · {mj.usage}
-                            {url && <span className="ml-2 text-salvia">✓</span>}
-                          </span>
-                          {claudePrompts[mj.key] && (
-                            <button onClick={() => onCopy(claudePrompts[mj.key], mj.key)} className="text-[10px] text-terracota hover:text-terracota/80">
-                              {copiedField === mj.key ? "✓" : "copiar prompt"}
-                            </button>
-                          )}
-                        </div>
-                        {claudePrompts[mj.key] ? (
-                          <>
-                            <p className="text-[10px] uppercase tracking-wider text-salvia/70">Prompt Claude (usado)</p>
-                            <p className="text-[11px] text-creme/85 font-mono leading-relaxed bg-carvao/60 rounded p-2">{claudePrompts[mj.key]}</p>
-                          </>
-                        ) : (
-                          <p className="text-[10px] text-creme/40 italic">Ainda nao gerada — prompt sera criado pelo Claude no momento</p>
-                        )}
-                        {err && <p className="text-[10px] text-red-300/70 italic">{err}</p>}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
