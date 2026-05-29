@@ -953,7 +953,7 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
 }
 
 function RenderPanel() {
-  const [scope, setScope] = useState<"all" | "slides-only" | "videos-only" | "semana-1" | "semana-2" | "semana-3" | "semana-4" | "day-1" | "day-1-video" | "day-1-slides" | "day-7" | "day-7-video" | "day-15" | "day-15-video" | "day-30" | "day-30-video">("day-1-video");
+  const [scope, setScope] = useState<"all" | "slides-only" | "videos-only" | "tts-only" | "semana-1" | "semana-2" | "semana-3" | "semana-4" | "day-1" | "day-1-video" | "day-1-slides" | "day-1-tts" | "day-7" | "day-7-video" | "day-7-tts" | "day-15" | "day-15-video" | "day-15-tts" | "day-30" | "day-30-video" | "day-30-tts">("tts-only");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ runsUrl?: string; error?: string } | null>(null);
 
@@ -1000,7 +1000,12 @@ function RenderPanel() {
           disabled={running}
           className="bg-creme/5 rounded-lg px-4 py-3 text-creme outline-none cursor-pointer"
         >
-          <option value="day-1-video" className="bg-carvao">Só vídeo D1-13h (TESTE rápido, ~5 min)</option>
+          <option value="tts-only" className="bg-carvao">Só TTS de TODOS os vídeos (audir vozes 1º, sem montar)</option>
+          <option value="day-1-tts" className="bg-carvao">Só TTS D1 (ouvir antes de montar)</option>
+          <option value="day-7-tts" className="bg-carvao">Só TTS D7</option>
+          <option value="day-15-tts" className="bg-carvao">Só TTS D15</option>
+          <option value="day-30-tts" className="bg-carvao">Só TTS D30</option>
+          <option value="day-1-video" className="bg-carvao">Só vídeo D1-13h (TTS + montagem, ~5 min)</option>
           <option value="day-1-slides" className="bg-carvao">Só carrossel D1-10h (re-render slides)</option>
           <option value="day-1" className="bg-carvao">Dia 1 completo (carrossel + vídeo)</option>
           <option value="day-7-video" className="bg-carvao">Só vídeo D7</option>
@@ -1014,7 +1019,7 @@ function RenderPanel() {
           <option value="semana-3" className="bg-carvao">Semana 3</option>
           <option value="semana-4" className="bg-carvao">Semana 4</option>
           <option value="slides-only" className="bg-carvao">Só carrosséis (35)</option>
-          <option value="videos-only" className="bg-carvao">Só vídeos (26)</option>
+          <option value="videos-only" className="bg-carvao">Só vídeos (26 - TTS + montagem)</option>
           <option value="all" className="bg-carvao">Tudo (60 posts)</option>
         </select>
       </label>
@@ -1354,6 +1359,7 @@ function VideoTTSPanel({ post, pKey }: { post: ContentPost; pKey: string }) {
           text: clean,
           blocker: pKey,
           filename: `slide-${slideIdx}`,
+          layout: post.slides[slideIdx]?.layout,
         }),
       });
       const data = await res.json();

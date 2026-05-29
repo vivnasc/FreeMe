@@ -10,6 +10,19 @@ const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "";
 const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_v3";
 const BUCKET = "freeme-assets";
 
+// v3 voice tag por layout - performance natural varia consoante o tipo de slide.
+function voiceTagFor(layout?: string): string {
+  switch (layout) {
+    case "capa":         return "(amigável)";
+    case "conteudo":     return "(didática)";
+    case "kinetic-line": return "(didática)";
+    case "citacao":      return "(reflexiva)";
+    case "cta":          return "(compreensiva)";
+    case "assinatura":   return "(com calma)";
+    default:             return "(amigável)";
+  }
+}
+
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,12 +32,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "ElevenLabs not configured" }, { status: 500 });
   }
 
-  const { text, blocker, filename, voiceId } = await request.json();
+  const { text, blocker, filename, voiceId, layout } = await request.json();
   const voice = voiceId || ELEVENLABS_VOICE_ID;
 
   if (!voice) {
     return NextResponse.json({ error: "Voice ID required" }, { status: 400 });
   }
+
+  // Se o autor ja meteu tag (parentese inicial), respeitar. Caso contrario aplica por layout.
+  const hasTag = /^\s*\(/.test(text || "");
+  const finalText = hasTag ? text : `${voiceTagFor(layout)} ${text}`;
 
   const res = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
@@ -36,7 +53,7 @@ export async function POST(request: Request) {
         Accept: "audio/mpeg",
       },
       body: JSON.stringify({
-        text,
+        text: finalText,
         model_id: ELEVENLABS_MODEL,
       }),
     },

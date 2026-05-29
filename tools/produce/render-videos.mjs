@@ -32,6 +32,21 @@ const args = Object.fromEntries(
 const SCOPE = args.scope || "all";
 const CONCURRENCY = Number(args.concurrency || 2);
 const SKIP_EXISTING = args["skip-existing"] !== "false";
+const AUDIO_ONLY = args["audio-only"] === "true";
+
+// v3 voice tags por tipo de slide - performance varia consoante a mensagem.
+// Tags entre parenteses sao direcao de performance (v3 nao as fala).
+function voiceTagFor(slide) {
+  switch (slide.layout) {
+    case "capa":        return "(amigável)";       // abertura, puxa o ouvinte
+    case "conteudo":    return "(didática)";        // ensina com clareza
+    case "kinetic-line":return "(didática)";        // linha de video = expor ideia
+    case "citacao":     return "(reflexiva)";       // citacao = pausa contemplativa
+    case "cta":         return "(compreensiva)";    // convite caloroso
+    case "assinatura":  return "(com calma)";       // fechamento sereno
+    default:            return "(amigável)";
+  }
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY =
@@ -68,8 +83,8 @@ async function loadPosts() {
 }
 
 function filterByScope(posts, scope) {
-  if (scope === "all") return posts;
-  const m = /^day-(\d+)(?:-(video|slides))?$/.exec(scope);
+  if (scope === "all" || scope === "videos-only" || scope === "tts-only") return posts;
+  const m = /^day-(\d+)(?:-(video|slides|tts))?$/.exec(scope);
   if (m) return posts.filter((p) => p.day === Number(m[1]));
   const w = /^semana-(\d+)$/.exec(scope);
   if (w) {
@@ -198,8 +213,12 @@ async function buildVideo(post, workDir) {
     //      2) se nao existir, gera via ElevenLabs e sobe para mesmo path.
     // Texto: se a Vivianne customizou (tags (suspira) etc.), usa esse.
     const customText = ttsOverrides[String(i)] || ttsOverrides[i];
-    const ttsText = (customText || slide.body).replace(/[*_]/g, "").trim();
-    const audioStoragePath = `audio/D${post.day}-${post.slot}/slide-${i}.mp3`;
+    const rawText = (customText || slide.body).replace(/[*_]/g, "").trim();
+    // Se o texto custom ja comeca com tag entre parenteses, respeitar.
+    // Caso contrario prepend tag baseada no layout.
+    const hasTag = /^\s*\(/.test(rawText);
+    const ttsText = hasTag ? rawText : `${voiceTagFor(slide)} ${rawText}`;
+    const audioStoragePath = `audio/${pKey}/slide-${i}.mp3`;
     let audioBuf;
     try {
       const { data: audioUrl } = supabase.storage.from(BUCKET).getPublicUrl(audioStoragePath);
@@ -224,6 +243,11 @@ async function buildVideo(post, workDir) {
     segments.push({ pngPath, audioPath, duration });
   }
   await browser.close();
+
+  // Audio-only: ja temos todos os MP3s em Storage, salta a montagem.
+  if (AUDIO_ONLY) {
+    return null;
+  }
 
   // 2. Para cada segmento: png + mp3 -> mp4 segment
   for (let i = 0; i < segments.length; i++) {
@@ -260,14 +284,18 @@ async function buildVideo(post, workDir) {
 
 async function processOne(post) {
   const dayLabel = `D${post.day}-${post.slot}`;
-  if (SKIP_EXISTING && await videoExists(post.day, post.slot)) {
-    console.log(`${dayLabel}: skip (existe)`);
+  if (!AUDIO_ONLY && SKIP_EXISTING && await videoExists(post.day, post.slot)) {
+    console.log(`${dayLabel}: skip (video existe)`);
     return { ok: true, skipped: true, key: dayLabel };
   }
-  console.log(`${dayLabel}: a gerar (${post.slides.length} slides)`);
+  console.log(`${dayLabel}: ${AUDIO_ONLY ? "TTS bulk" : "a gerar video"} (${post.slides.length} slides)`);
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `freeme-video-${dayLabel}-`));
   try {
     const buf = await buildVideo(post, workDir);
+    if (AUDIO_ONLY) {
+      console.log(`${dayLabel}: audios em audio/D${post.day}-${post.slot === "morning" ? "10h" : "13h"}/`);
+      return { ok: true, key: dayLabel };
+    }
     const path_out = `videos/D${post.day}-${post.slot}.mp4`;
     const { error: upErr } = await supabase.storage
       .from(BUCKET)
