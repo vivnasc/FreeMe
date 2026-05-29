@@ -37,10 +37,12 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         text,
         model_id: ELEVENLABS_MODEL,
+        // Priming PT-PT: previous_text forca o modelo a continuar no mesmo sotaque.
+        previous_text: "Olá, sou a Vivianne. Falo português de Portugal, com sotaque de Lisboa.",
         voice_settings: {
-          stability: 0.50,        // permite expressao natural (v3 funciona melhor)
-          similarity_boost: 0.75, // padrao v3
-          style: 0.50,            // v3 beneficia de algum style
+          stability: 0.65,         // mais estavel = menos drift de sotaque
+          similarity_boost: 0.95,  // cola maxima a voz clonada (PT-PT original)
+          style: 0.0,              // zero interpretacao = modelo nao "inventa" sotaque
           use_speaker_boost: true,
         },
       }),

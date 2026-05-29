@@ -111,10 +111,12 @@ async function generateTTS(text) {
       body: JSON.stringify({
         text,
         model_id: process.env.ELEVENLABS_TTS_MODEL || "eleven_v3",
+        // Priming PT-PT: forca continuidade de sotaque lisboeta.
+        previous_text: "Olá, sou a Vivianne. Falo português de Portugal, com sotaque de Lisboa.",
         voice_settings: {
-          stability: 0.50,
-          similarity_boost: 0.75,
-          style: 0.50,
+          stability: 0.65,
+          similarity_boost: 0.95,
+          style: 0.0,
           use_speaker_boost: true,
         },
       }),
