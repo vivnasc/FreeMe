@@ -120,13 +120,21 @@ export function AdminDashboard() {
         const next: Record<string, string> = {};
         for (const post of ALL_POSTS) {
           const slots = getMJPrompts(post.day, post.slot);
+          const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
           slots.forEach((slot, mjIdx) => {
             const mjKey = `D${post.day}-${post.slot}-${mjIdx}`;
             const url = generated[mjKey];
             if (!url) return;
-            const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
-            const slideId = `${pKey}-slide-${slot.slideIndex}`;
-            next[slideId] = url;
+            if (post.type === "video") {
+              // Video: 1 foto MJ partilhada por TODAS as cenas (mesmo
+              // comportamento do render-videos.mjs no GH Actions).
+              post.slides.forEach((_, slideIdx) => {
+                next[`${pKey}-slide-${slideIdx}`] = url;
+              });
+            } else {
+              // Carrossel: foto so no slide especifico definido em MJ_PROMPTS.
+              next[`${pKey}-slide-${slot.slideIndex}`] = url;
+            }
           });
         }
         setSlideImages((prev) => ({ ...next, ...prev })); // drag-drop overrides MJ
@@ -1196,6 +1204,11 @@ function PostEditorView({
         </div>
       </div>
 
+      {/* TTS por slide (so videos) — ouvir antes de renderizar */}
+      {post.type === "video" && (
+        <VideoTTSPanel post={post} pKey={pKey} />
+      )}
+
       {/* APROVAÇÃO + PUBLICAÇÃO */}
       <div className="card" style={{ marginTop: 24, borderColor: isApproved ? "var(--salvia)" : "var(--linha)" }}>
         <div className="row between" style={{ marginBottom: 12 }}>
@@ -1240,11 +1253,6 @@ function PostEditorView({
           <button onClick={() => downloadText(`${post.title}\n\n${igCaption(post)}\n\n---\n\n${tiktokCaption(post)}`, `${pKey}.txt`)} className="btn" style={{ fontSize: 11 }}>Download captions</button>
         </div>
       </div>
-
-      {/* TTS por slide (so videos) — ouvir antes de renderizar */}
-      {post.type === "video" && (
-        <VideoTTSPanel post={post} pKey={pKey} />
-      )}
 
       {/* INFO VÍDEO */}
       {post.type === "video" && (
