@@ -16,19 +16,22 @@ export async function GET() {
     return NextResponse.json({
       ok: false,
       stage: "env",
-      error: "REPLICATE_API_TOKEN nao definida",
+      missing: "REPLICATE_API_TOKEN",
+      error: "REPLICATE_API_TOKEN nao definida no Vercel",
     });
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.FREEME_SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseKey) {
+  const serviceKey = process.env.FREEME_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const missing: string[] = [];
+  if (!supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!serviceKey) missing.push("FREEME_SUPABASE_SERVICE_ROLE_KEY (ou SUPABASE_SERVICE_ROLE_KEY)");
+  if (missing.length > 0) {
     return NextResponse.json({
       ok: false,
       stage: "env",
-      error: "Supabase URL ou service role key nao definidas",
+      missing,
+      error: `Env vars em falta no Vercel: ${missing.join(", ")}. Settings -> Environment Variables -> Add. Service role key esta em Supabase Dashboard -> Settings -> API (NAO a anon key).`,
     });
   }
 
