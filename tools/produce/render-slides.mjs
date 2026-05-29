@@ -64,7 +64,7 @@ async function ensureBucket() {
 
 function filterByScope(posts, scope) {
   if (scope === "all") return posts;
-  const m = /^day-(\d+)$/.exec(scope);
+  const m = /^day-(\d+)(?:-(video|slides))?$/.exec(scope);
   if (m) {
     const d = Number(m[1]);
     return posts.filter((p) => p.day === d);

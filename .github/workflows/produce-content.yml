@@ -17,9 +17,14 @@ on:
           - semana-3
           - semana-4
           - day-1
+          - day-1-video
+          - day-1-slides
           - day-7
+          - day-7-video
           - day-15
+          - day-15-video
           - day-30
+          - day-30-video
 
 jobs:
   render:
@@ -49,14 +54,14 @@ jobs:
         run: npm run produce:dump
 
       - name: Render slides (PNG)
-        if: ${{ inputs.scope != 'videos-only' }}
+        if: ${{ inputs.scope != 'videos-only' && !contains(inputs.scope, '-video') }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           FREEME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FREEME_SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run produce:render -- --scope=${{ inputs.scope }} --concurrency=4
 
       - name: Render videos (MP4 com TTS)
-        if: ${{ inputs.scope != 'slides-only' }}
+        if: ${{ inputs.scope != 'slides-only' && !contains(inputs.scope, '-slides') }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           FREEME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FREEME_SUPABASE_SERVICE_ROLE_KEY }}

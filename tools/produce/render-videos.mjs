@@ -69,7 +69,7 @@ async function loadPosts() {
 
 function filterByScope(posts, scope) {
   if (scope === "all") return posts;
-  const m = /^day-(\d+)$/.exec(scope);
+  const m = /^day-(\d+)(?:-(video|slides))?$/.exec(scope);
   if (m) return posts.filter((p) => p.day === Number(m[1]));
   const w = /^semana-(\d+)$/.exec(scope);
   if (w) {

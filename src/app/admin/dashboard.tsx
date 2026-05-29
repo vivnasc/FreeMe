@@ -1000,10 +1000,15 @@ function RenderPanel() {
           disabled={running}
           className="bg-creme/5 rounded-lg px-4 py-3 text-creme outline-none cursor-pointer"
         >
-          <option value="day-1" className="bg-carvao">Só dia 1 (TESTE — 2 posts, ~15 slides + 1 vídeo)</option>
-          <option value="day-7" className="bg-carvao">Só dia 7</option>
-          <option value="day-15" className="bg-carvao">Só dia 15</option>
-          <option value="day-30" className="bg-carvao">Só dia 30</option>
+          <option value="day-1-video" className="bg-carvao">Só vídeo D1-13h (TESTE rápido, ~5 min)</option>
+          <option value="day-1-slides" className="bg-carvao">Só carrossel D1-10h (re-render slides)</option>
+          <option value="day-1" className="bg-carvao">Dia 1 completo (carrossel + vídeo)</option>
+          <option value="day-7-video" className="bg-carvao">Só vídeo D7</option>
+          <option value="day-15-video" className="bg-carvao">Só vídeo D15</option>
+          <option value="day-30-video" className="bg-carvao">Só vídeo D30</option>
+          <option value="day-7" className="bg-carvao">Dia 7 completo</option>
+          <option value="day-15" className="bg-carvao">Dia 15 completo</option>
+          <option value="day-30" className="bg-carvao">Dia 30 completo</option>
           <option value="semana-1" className="bg-carvao">Semana 1 (14 posts)</option>
           <option value="semana-2" className="bg-carvao">Semana 2</option>
           <option value="semana-3" className="bg-carvao">Semana 3</option>
