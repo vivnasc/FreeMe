@@ -93,6 +93,34 @@ export function AdminDashboard() {
     setSlideImages((prev) => ({ ...prev, [slideId]: url }));
   }
 
+  // Hidrata slideImages a partir das imagens MJ geradas em /admin/imagens
+  // para que o preview em /admin/conteudo mostre-as automaticamente.
+  // Mapeia chave MJ (D{day}-{slot}-{mjIdx}) para slideId do preview
+  // ({postKey}-slide-{slideIndex}) usando getMJPrompts.
+  useEffect(() => {
+    function hydrateFromMJ() {
+      try {
+        const generated = JSON.parse(localStorage.getItem(MJ_STORAGE_KEY) || "{}") as Record<string, string>;
+        const next: Record<string, string> = {};
+        for (const post of ALL_POSTS) {
+          const slots = getMJPrompts(post.day, post.slot);
+          slots.forEach((slot, mjIdx) => {
+            const mjKey = `D${post.day}-${post.slot}-${mjIdx}`;
+            const url = generated[mjKey];
+            if (!url) return;
+            const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
+            const slideId = `${pKey}-slide-${slot.slideIndex}`;
+            next[slideId] = url;
+          });
+        }
+        setSlideImages((prev) => ({ ...next, ...prev })); // drag-drop overrides MJ
+      } catch {}
+    }
+    hydrateFromMJ();
+    window.addEventListener("storage", hydrateFromMJ);
+    return () => window.removeEventListener("storage", hydrateFromMJ);
+  }, []);
+
   function downloadText(text: string, filename: string) {
     const blob = new Blob([text], { type: "text/plain" });
     const a = document.createElement("a");
@@ -167,7 +195,23 @@ export function AdminDashboard() {
         </div>
 
         {detailTab === "slides" && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <>
+            {selected.type === "video" && (
+              <div className="card" style={{ marginBottom: 20, borderColor: "var(--terracota)" }}>
+                <div className="mini" style={{ marginBottom: 6, color: "var(--terracota)" }}>Como o vídeo é montado</div>
+                <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+                  Cada slide abaixo é <strong>uma cena</strong> do vídeo Reels/TikTok (1080×1920).
+                </p>
+                <ul style={{ fontSize: 12, color: "var(--texto-suave)", marginTop: 8, paddingLeft: 18, lineHeight: 1.7 }}>
+                  <li>TTS ElevenLabs lê o texto da cena na tua voz clonada</li>
+                  <li>Foto MJ do post (1 só) é background fixo de todas as cenas</li>
+                  <li>ffmpeg combina texto + áudio + 0.3s padding = 1 segmento</li>
+                  <li>Concat dos {selected.slides.length} segmentos → MP4 final em <code>freeme-assets/videos/D{selected.day}-{selected.slot}.mp4</code></li>
+                  <li>Duração total ≈ {(selected.slides.length * 3.5).toFixed(0)}s (depende do texto)</li>
+                </ul>
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {selected.slides.map((slide, i) => {
               const slideId = `${postKey(selected)}-slide-${i}`;
               const imageUrl = slideImages[slideId];
@@ -242,7 +286,8 @@ export function AdminDashboard() {
                 </div>
               );
             })}
-          </div>
+            </div>
+          </>
         )}
 
         {detailTab === "copy" && (
