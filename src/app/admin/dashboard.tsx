@@ -10,7 +10,7 @@ import { buildSlideHTML } from "@/lib/slide-template.mjs";
 
 type MainView = "studio" | "conteudo" | "imagens" | "slides" | "distribuir";
 type DetailTab = "slides" | "copy" | "imagem";
-type ConteudoSub = "lista" | "calendario" | "captions";
+type ConteudoSub = "lista" | "montagem" | "calendario" | "captions";
 
 const CAPTION_AUTHOR_TAG = (process.env.NEXT_PUBLIC_CAPTION_AUTHOR_TAG ?? "@vivianne.dos.santos").trim();
 const VIVIANNE_HANDLE = CAPTION_AUTHOR_TAG;
@@ -174,155 +174,23 @@ export function AdminDashboard() {
     return `D${p.day}-${p.slot === "morning" ? "10h" : "13h"}`;
   }
 
-  // ============== DETAIL VIEW ==============
+  // ============== DETAIL VIEW (estilo SyncHim) ==============
   if (selected) {
-    const mjPrompts = getMJPrompts(selected.day, selected.slot);
-
     return (
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <button onClick={() => setSelected(null)} className="text-sm text-creme/50 hover:text-creme mb-6">
-          ← Voltar
-        </button>
-
-        <div className="flex items-center gap-3 mb-2 flex-wrap">
-          <span className="text-3xl font-semibold text-terracota">{postKey(selected)}</span>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-            selected.type === "carousel" ? "bg-terracota/20 text-terracota" : "bg-salvia/20 text-salvia"
-          }`}>
-            {selected.type === "carousel" ? "Carrossel" : "Vídeo"}
-          </span>
-          <span className="text-xs text-creme/40">{selected.categoria}</span>
-          <span className="text-xs text-creme/40">· {selected.slides.length} slides</span>
-        </div>
-        <h1 className="text-lg text-creme/80 mb-4">{selected.title}</h1>
-
-        {(() => {
-          const pKey = postKey(selected);
-          const isApproved = approved.has(pKey);
-          return (
-            <div className="row" style={{ marginBottom: 20, gap: 10 }}>
-              <button
-                onClick={() => toggleApproval(pKey)}
-                className={`btn ${isApproved ? "salvia" : "primary"}`}
-                style={{ fontSize: 13 }}
-              >
-                {isApproved ? "✓ Conteúdo aprovado" : "Aprovar conteúdo"}
-              </button>
-              <span className="muted" style={{ fontSize: 12 }}>
-                {isApproved ? "Pronto para gerar imagens." : "Revê slides + caption antes de aprovar."}
-              </span>
-            </div>
-          );
-        })()}
-
-        <div className="flex gap-1 bg-creme/5 rounded-xl p-1 mb-8">
-          {(["slides", "copy", "imagem"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setDetailTab(t)}
-              className={`flex-1 rounded-lg py-2.5 text-sm transition-all ${
-                detailTab === t ? "bg-creme/10 text-creme font-medium" : "text-creme/40 hover:text-creme/60"
-              }`}
-            >
-              {t === "slides" ? "Slides" : t === "copy" ? "Copy" : `Imagem MJ (${mjPrompts.length})`}
-            </button>
-          ))}
-        </div>
-
-        {detailTab === "slides" && (
-          <>
-            {selected.type === "video" && (
-              <div className="card" style={{ marginBottom: 20, borderColor: "var(--terracota)" }}>
-                <div className="mini" style={{ marginBottom: 6, color: "var(--terracota)" }}>Como o vídeo é montado</div>
-                <p style={{ fontSize: 13, lineHeight: 1.6 }}>
-                  Cada slide abaixo é <strong>uma cena</strong> do vídeo Reels/TikTok (1080×1920).
-                </p>
-                <ul style={{ fontSize: 12, color: "var(--texto-suave)", marginTop: 8, paddingLeft: 18, lineHeight: 1.7 }}>
-                  <li>TTS ElevenLabs lê o texto da cena na tua voz clonada</li>
-                  <li>Foto MJ do post (1 só) é background fixo de todas as cenas</li>
-                  <li>ffmpeg combina texto + áudio + 0.3s padding = 1 segmento</li>
-                  <li>Concat dos {selected.slides.length} segmentos → MP4 final em <code>freeme-assets/videos/D{selected.day}-{selected.slot}.mp4</code></li>
-                  <li>Duração total ≈ {(selected.slides.length * 3.5).toFixed(0)}s (depende do texto)</li>
-                </ul>
-              </div>
-            )}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {selected.slides.map((slide, i) => {
-              const slideId = `${postKey(selected)}-slide-${i}`;
-              const imageUrl = slideImages[slideId];
-              const acceptsPhoto = ["capa", "conteudo", "kinetic-line"].includes(slide.layout);
-              const isLast = i === selected.slides.length - 1;
-
-              return (
-                <div key={i} className="flex flex-col gap-2">
-                  <SlidePreview slide={slide} post={selected} photoUrl={imageUrl} isLastSlide={isLast} width={300} />
-                  <p className="mini" style={{ fontSize: 10 }}>{slide.layout} · slide {i + 1}/{selected.slides.length}</p>
-                  {acceptsPhoto && (
-                    <SlideImageControls
-                      slideId={slideId}
-                      currentUrl={imageUrl}
-                      post={selected}
-                      slideIdx={i}
-                      onUploaded={(url) => onImageUploaded(slideId, url)}
-                    />
-                  )}
-                </div>
-              );
-            })}
-            </div>
-          </>
-        )}
-
-        {detailTab === "copy" && (
-          <div className="flex flex-col gap-6">
-            <CaptionBlock label="Instagram" text={igCaption(selected)} fieldKey="ig" copiedField={copiedField} onCopy={copy} onDownload={(t) => downloadText(t, `${postKey(selected)}-instagram.txt`)} />
-            <CaptionBlock label="TikTok" text={tiktokCaption(selected)} fieldKey="tt" copiedField={copiedField} onCopy={copy} onDownload={(t) => downloadText(t, `${postKey(selected)}-tiktok.txt`)} />
-            <CaptionBlock label="Hashtags" text={selected.hashtags} fieldKey="hash" copiedField={copiedField} onCopy={copy} />
-          </div>
-        )}
-
-        {detailTab === "imagem" && (
-          <div className="flex flex-col gap-6">
-            <div>
-              <h3 className="text-xs text-creme/40 uppercase tracking-wide mb-2">Estilo base FreeMe (juntar a todos os prompts)</h3>
-              <div
-                className="rounded-xl bg-creme/5 p-4 cursor-pointer hover:bg-creme/10 transition-colors"
-                onClick={() => copy(FREEME_STYLE_BASE, "style")}
-              >
-                <p className="text-xs text-creme/60 font-mono leading-relaxed">{FREEME_STYLE_BASE}</p>
-                <p className="text-[10px] text-creme/30 mt-2">{copiedField === "style" ? "Copiado!" : "Clica para copiar"}</p>
-              </div>
-            </div>
-
-            {mjPrompts.length === 0 && (
-              <p className="text-xs text-creme/40">Sem prompts MJ para este post.</p>
-            )}
-            {mjPrompts.map((mj, i) => (
-              <div key={i}>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs text-creme/40 uppercase tracking-wide">
-                    Prompt {i + 1} · slide {mj.slideIndex} · {mj.usage}
-                  </h3>
-                  <button onClick={() => copy(mj.prompt, `mj-${i}`)} className="text-xs text-terracota hover:text-terracota/80">
-                    {copiedField === `mj-${i}` ? "Copiado!" : "Copiar"}
-                  </button>
-                </div>
-                <div className="rounded-xl bg-creme/5 p-4">
-                  <p className="text-sm text-creme/80 font-mono leading-relaxed">{mj.prompt}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-2 mt-8 pt-6 border-t border-creme/10">
-          {selected.platforms.map((p) => (
-            <span key={p} className="px-3 py-1 rounded-full bg-creme/10 text-xs text-creme/50">
-              {p === "ig" ? "Instagram" : "TikTok"}
-            </span>
-          ))}
-        </div>
-      </div>
+      <PostEditorView
+        post={selected}
+        allPosts={ALL_POSTS}
+        slideImages={slideImages}
+        onImageUploaded={onImageUploaded}
+        approved={approved}
+        toggleApproval={toggleApproval}
+        copiedField={copiedField}
+        copy={copy}
+        downloadText={downloadText}
+        onBackToList={() => setSelected(null)}
+        onSelectPost={(p) => setSelected(p)}
+        postKey={postKey}
+      />
     );
   }
 
@@ -380,11 +248,12 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* CONTEÚDO — sub-tabs Lista | Calendário | Captions */}
+      {/* CONTEÚDO — sub-tabs Lista | Montagem | Calendário | Captions */}
       {view === "conteudo" && (
         <div className="flex gap-1 bg-creme/5 rounded-xl p-1 mb-4 max-w-md">
           {([
             ["lista", "Lista"],
+            ["montagem", "Montagem"],
             ["calendario", "Calendário"],
             ["captions", "Captions"],
           ] as const).map(([k, label]) => (
@@ -463,6 +332,51 @@ export function AdminDashboard() {
       )}
 
       {/* CALENDÁRIO */}
+      {/* MONTAGEM — todos os posts com sequencia de slides visivel */}
+      {view === "conteudo" && conteudoSub === "montagem" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {filtered.map((p) => {
+            const pK = postKey(p);
+            const isApproved = approved.has(pK);
+            return (
+              <div key={pK} className="card" style={{ padding: 16, borderColor: isApproved ? "var(--salvia)" : "var(--linha)" }}>
+                <div className="row between" style={{ marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                  <div className="row tight">
+                    <span style={{ color: "var(--terracota)", fontWeight: 500, fontSize: 14 }}>{pK}</span>
+                    <span className={`pill`} style={{ borderColor: p.type === "carousel" ? "var(--terracota)" : "var(--salvia)", color: p.type === "carousel" ? "var(--terracota)" : "var(--salvia)" }}>
+                      {p.type === "carousel" ? "Carrossel" : "Vídeo"}
+                    </span>
+                    <span className="muted" style={{ fontSize: 12 }}>{p.categoria}</span>
+                    <span style={{ fontSize: 13, color: "var(--texto)" }}>{p.title}</span>
+                  </div>
+                  <div className="row tight">
+                    <span className={`pill ${isApproved ? "ok" : "pending"}`}>{isApproved ? "Aprovado" : `${p.slides.length} slides`}</span>
+                    <button onClick={() => toggleApproval(pK)} className={`btn ${isApproved ? "salvia" : ""}`} style={{ fontSize: 11 }}>
+                      {isApproved ? "✓" : "Aprovar"}
+                    </button>
+                    <button onClick={() => { setSelected(p); setDetailTab("slides"); }} className="btn primary" style={{ fontSize: 11 }}>
+                      Editor →
+                    </button>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                  {p.slides.map((slide, i) => {
+                    const sid = `${pK}-slide-${i}`;
+                    const url = slideImages[sid];
+                    return (
+                      <div key={i} style={{ flexShrink: 0 }}>
+                        <SlidePreview slide={slide} post={p} photoUrl={url} isLastSlide={i === p.slides.length - 1} width={140} />
+                        <p className="mini" style={{ fontSize: 9, marginTop: 4 }}>{i + 1} · {slide.layout}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {view === "conteudo" && conteudoSub === "calendario" && (
         <div>
           {[1, 2, 3, 4].map((week) => {
@@ -1057,6 +971,228 @@ function RenderPanel() {
 // "ARRASTA FOTO" + "gerar auto" por slide. Identidade FreeMe.
 // Renderiza UMA slide usando o template oficial (mesmo HTML do GH render),
 // escalado para caber no preview do admin. Vês exactamente o que sai.
+// ============== POST EDITOR VIEW (3-col padrão SyncHim) ==============
+function PostEditorView({
+  post,
+  allPosts,
+  slideImages,
+  onImageUploaded,
+  approved,
+  toggleApproval,
+  copiedField,
+  copy,
+  downloadText,
+  onBackToList,
+  onSelectPost,
+  postKey,
+}: {
+  post: ContentPost;
+  allPosts: ContentPost[];
+  slideImages: Record<string, string>;
+  onImageUploaded: (slideId: string, url: string) => void;
+  approved: Set<string>;
+  toggleApproval: (pKey: string) => void;
+  copiedField: string | null;
+  copy: (text: string, field: string) => void;
+  downloadText: (text: string, filename: string) => void;
+  onBackToList: () => void;
+  onSelectPost: (p: ContentPost) => void;
+  postKey: (p: ContentPost) => string;
+}) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [post.day, post.slot]);
+
+  const pKey = postKey(post);
+  const isApproved = approved.has(pKey);
+  const mjSlots = getMJPrompts(post.day, post.slot);
+  const idxInAll = allPosts.findIndex((p) => p.day === post.day && p.slot === post.slot);
+  const prevPost = idxInAll > 0 ? allPosts[idxInAll - 1] : null;
+  const nextPost = idxInAll >= 0 && idxInAll < allPosts.length - 1 ? allPosts[idxInAll + 1] : null;
+  const activeSlide = post.slides[activeIdx];
+  const activeSlideId = `${pKey}-slide-${activeIdx}`;
+  const activeImageUrl = slideImages[activeSlideId];
+  const mjPromptForSlide = mjSlots.find((s) => s.slideIndex === activeIdx);
+  const acceptsPhoto = activeSlide && ["capa", "conteudo", "kinetic-line"].includes(activeSlide.layout);
+
+  return (
+    <div>
+      {/* TOPO: nav post → post (estilo SyncHim) */}
+      <div className="row between" style={{ marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+        <div className="row tight">
+          <span className="mini" style={{ color: "var(--terracota)" }}>{pKey}</span>
+          <span className="muted" style={{ fontSize: 12 }}>· {post.type === "carousel" ? "CARROSSEL" : "VÍDEO"}</span>
+          <span className="muted" style={{ fontSize: 12 }}>· {post.categoria}</span>
+        </div>
+        <div className="row tight">
+          <span className={`pill ${isApproved ? "ok" : "pending"}`}>{isApproved ? "Aprovado" : "Por aprovar"}</span>
+          <button onClick={() => prevPost && onSelectPost(prevPost)} disabled={!prevPost} className="btn" style={{ fontSize: 12 }}>← anterior</button>
+          <button onClick={onBackToList} className="btn" style={{ fontSize: 12 }}>lista</button>
+          <button onClick={() => nextPost && onSelectPost(nextPost)} disabled={!nextPost} className="btn" style={{ fontSize: 12 }}>próximo →</button>
+        </div>
+      </div>
+
+      <h1 style={{ marginBottom: 16 }}>{post.title}</h1>
+
+      {/* 3 COLUNAS: PREVIEW | EDITOR | SLIDES */}
+      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr 240px", gap: 24, alignItems: "start" }}>
+        {/* COL 1: PREVIEW ao vivo */}
+        <div>
+          <div className="mini" style={{ marginBottom: 8 }}>Preview</div>
+          {activeSlide && (
+            <SlidePreview
+              slide={activeSlide}
+              post={post}
+              photoUrl={activeImageUrl}
+              isLastSlide={activeIdx === post.slides.length - 1}
+              width={300}
+            />
+          )}
+          <div className="row" style={{ marginTop: 12, gap: 6 }}>
+            <button onClick={() => setActiveIdx((i) => Math.max(0, i - 1))} disabled={activeIdx === 0} className="btn" style={{ fontSize: 12 }}>←</button>
+            <button onClick={() => setActiveIdx((i) => Math.min(post.slides.length - 1, i + 1))} disabled={activeIdx === post.slides.length - 1} className="btn" style={{ fontSize: 12 }}>→</button>
+            <span className="muted" style={{ fontSize: 11, marginLeft: 8 }}>{activeIdx + 1} / {post.slides.length}</span>
+          </div>
+        </div>
+
+        {/* COL 2: EDITOR do slide activo */}
+        <div>
+          <div className="mini" style={{ marginBottom: 8 }}>Editar slide {activeIdx + 1} / {post.slides.length}</div>
+          <div className="card" style={{ padding: 16 }}>
+            <div className="mini" style={{ fontSize: 10, marginBottom: 4 }}>Layout</div>
+            <p style={{ fontSize: 14, marginBottom: 16 }}>{activeSlide?.layout}</p>
+
+            <div className="mini" style={{ fontSize: 10, marginBottom: 4 }}>Texto do slide</div>
+            <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-line", marginBottom: 16, color: "var(--texto)" }}>{activeSlide?.body}</p>
+
+            {mjPromptForSlide && (
+              <>
+                <div className="mini" style={{ fontSize: 10, marginBottom: 4 }}>Prompt visual (semente para Claude)</div>
+                <div style={{ background: "var(--bg)", border: "1px solid var(--linha)", borderRadius: 4, padding: 8, fontSize: 12, fontFamily: "ui-monospace, Menlo, monospace", marginBottom: 8 }}>{mjPromptForSlide.prompt}</div>
+                <button onClick={() => copy(mjPromptForSlide.prompt, "prompt-active")} className="btn" style={{ fontSize: 11 }}>
+                  {copiedField === "prompt-active" ? "Copiado" : "Copiar prompt"}
+                </button>
+              </>
+            )}
+
+            {acceptsPhoto && (
+              <>
+                <div className="mini" style={{ fontSize: 10, marginTop: 16, marginBottom: 8 }}>Imagem de fundo (arrasta, cola ou clica)</div>
+                <SlideImageControls
+                  slideId={activeSlideId}
+                  currentUrl={activeImageUrl}
+                  post={post}
+                  slideIdx={activeIdx}
+                  onUploaded={(url) => onImageUploaded(activeSlideId, url)}
+                />
+              </>
+            )}
+            {!acceptsPhoto && (
+              <p className="muted" style={{ fontSize: 12, marginTop: 16, fontStyle: "italic" }}>
+                Este layout ({activeSlide?.layout}) é só tipografia — sem foto de fundo.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* COL 3: lista de slides clicaveis */}
+        <div>
+          <div className="row between" style={{ marginBottom: 8 }}>
+            <div className="mini">Slides</div>
+            <span className="muted" style={{ fontSize: 11 }}>{post.slides.length}</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {post.slides.map((s, i) => {
+              const isActive = i === activeIdx;
+              const idStr = String(i + 1).padStart(2, "0");
+              return (
+                <button
+                  key={i}
+                  onClick={() => setActiveIdx(i)}
+                  className="btn"
+                  style={{
+                    textAlign: "left",
+                    padding: "8px 10px",
+                    background: isActive ? "var(--bg-card)" : "transparent",
+                    borderColor: isActive ? "var(--terracota)" : "var(--linha)",
+                    fontSize: 12,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ color: isActive ? "var(--terracota)" : "var(--texto-suave)" }}>{idStr} · {s.layout}</span>
+                  <span className="muted" style={{ fontSize: 10, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.body.slice(0, 25)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* APROVAÇÃO + PUBLICAÇÃO */}
+      <div className="card" style={{ marginTop: 24, borderColor: isApproved ? "var(--salvia)" : "var(--linha)" }}>
+        <div className="row between" style={{ marginBottom: 12 }}>
+          <div className="mini">Publicação</div>
+          <button onClick={() => toggleApproval(pKey)} className={`btn ${isApproved ? "salvia" : "primary"}`} style={{ fontSize: 12 }}>
+            {isApproved ? "✓ Aprovado" : "Aprovar conteúdo"}
+          </button>
+        </div>
+        <div className="row" style={{ gap: 24, flexWrap: "wrap" }}>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Plataformas</div>
+            <div className="row tight" style={{ marginTop: 4 }}>
+              {post.platforms.map((p) => (
+                <span key={p} className="pill ok">{p === "ig" ? "Instagram" : p === "tiktok" ? "TikTok" : p}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Hora</div>
+            <p style={{ fontSize: 13, marginTop: 4 }}>{post.time}</p>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Slot</div>
+            <p style={{ fontSize: 13, marginTop: 4 }}>{post.slot === "morning" ? "Manhã" : "Tarde"}</p>
+          </div>
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <div className="row between" style={{ marginBottom: 4 }}>
+            <div className="mini" style={{ fontSize: 10 }}>Caption Instagram</div>
+            <button onClick={() => copy(igCaption(post), "ig")} className="btn" style={{ fontSize: 11 }}>{copiedField === "ig" ? "Copiado" : "Copiar"}</button>
+          </div>
+          <p style={{ fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-line", background: "var(--bg)", border: "1px solid var(--linha)", borderRadius: 4, padding: 10, maxHeight: 180, overflow: "auto" }}>{igCaption(post)}</p>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <div className="row between" style={{ marginBottom: 4 }}>
+            <div className="mini" style={{ fontSize: 10 }}>Caption TikTok</div>
+            <button onClick={() => copy(tiktokCaption(post), "tt")} className="btn" style={{ fontSize: 11 }}>{copiedField === "tt" ? "Copiado" : "Copiar"}</button>
+          </div>
+          <p style={{ fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-line", background: "var(--bg)", border: "1px solid var(--linha)", borderRadius: 4, padding: 10, maxHeight: 140, overflow: "auto" }}>{tiktokCaption(post)}</p>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button onClick={() => downloadText(`${post.title}\n\n${igCaption(post)}\n\n---\n\n${tiktokCaption(post)}`, `${pKey}.txt`)} className="btn" style={{ fontSize: 11 }}>Download captions</button>
+        </div>
+      </div>
+
+      {/* INFO VÍDEO */}
+      {post.type === "video" && (
+        <div className="card" style={{ marginTop: 16, borderColor: "var(--terracota)" }}>
+          <div className="mini" style={{ color: "var(--terracota)", marginBottom: 8 }}>Como o vídeo é montado</div>
+          <ul style={{ fontSize: 12, color: "var(--texto-suave)", paddingLeft: 18, lineHeight: 1.7 }}>
+            <li>{post.slides.length} cenas. Cada slide = 1 cena 1080×1920.</li>
+            <li>TTS ElevenLabs lê cada texto na voz da Vivianne.</li>
+            <li>Foto MJ do post = background fixo de todas as cenas.</li>
+            <li>ffmpeg concat → MP4 em <code>freeme-assets/videos/D{post.day}-{post.slot}.mp4</code></li>
+            <li>Duração ≈ {(post.slides.length * 3.5).toFixed(0)}s.</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SlidePreview({
   slide,
   post,

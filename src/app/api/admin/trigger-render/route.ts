@@ -8,10 +8,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = process.env.GITHUB_DISPATCH_TOKEN;
-  const owner = process.env.GITHUB_REPO_OWNER;
-  const repo = process.env.GITHUB_REPO_NAME;
-  const ref = process.env.GITHUB_DISPATCH_REF || "main";
+  const token = process.env.GITHUB_DISPATCH_TOKEN?.trim();
+  const owner = process.env.GITHUB_REPO_OWNER?.trim();
+  const repo = process.env.GITHUB_REPO_NAME?.trim();
+  const ref = process.env.GITHUB_DISPATCH_REF?.trim() || "main";
 
   if (!token || !owner || !repo) {
     return NextResponse.json(

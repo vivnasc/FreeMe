@@ -6,9 +6,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const token = process.env.GITHUB_DISPATCH_TOKEN;
-  const owner = process.env.GITHUB_REPO_OWNER;
-  const repo = process.env.GITHUB_REPO_NAME;
+  const token = process.env.GITHUB_DISPATCH_TOKEN?.trim();
+  const owner = process.env.GITHUB_REPO_OWNER?.trim();
+  const repo = process.env.GITHUB_REPO_NAME?.trim();
   if (!token || !owner || !repo) {
     return NextResponse.json({ error: "GITHUB_* env vars em falta" }, { status: 500 });
   }
