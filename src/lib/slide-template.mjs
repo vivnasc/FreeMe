@@ -91,12 +91,13 @@ export function buildSlideHTML(slide, opts = {}) {
       // Foto top, bloco areia/creme bottom 40% com texto terracota + bold ouro
       bg = PALETTE.areia;
       const body = applyBold(slide.body, slide.bold, boldTerracota);
+      // Foto cheia (sem corte) + gradiente que comeca transparente e funde para areia.
+      // Texto fica na zona areia solida com handle no fundo.
       textBox = `
-        <div style="position:absolute;top:0;left:0;right:0;height:60%;background-image:url('${opts.photoUrl}');background-size:cover;background-position:center"></div>
-        <div style="position:absolute;top:0;left:0;right:0;height:60%;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(46,36,29,.4) 95%)"></div>
-        <div style="position:absolute;top:24px;left:36px;color:#FBF4EC">${brandMark(PALETTE.areia)}</div>
-        <div style="position:absolute;top:60%;left:0;right:0;bottom:0;background:${PALETTE.areia};padding:60px 70px;display:flex;flex-direction:column;justify-content:center">
-          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:50px;line-height:1.32;color:${PALETTE.carvao}">${body}</p>
+        <div style="position:absolute;inset:0;background-image:url('${opts.photoUrl}');background-size:cover;background-position:center"></div>
+        <div style="position:absolute;top:24px;left:36px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;top:42%;background:linear-gradient(180deg,rgba(243,228,214,0) 0%,rgba(243,228,214,0.55) 22%,${PALETTE.areia} 48%,${PALETTE.areia} 100%);padding:240px 70px 60px;display:flex;flex-direction:column;justify-content:flex-end">
+          <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:50px;line-height:1.32;color:${PALETTE.carvao};margin-bottom:80px">${body}</p>
           <div style="position:absolute;bottom:36px;left:70px">${handleSig(PALETTE.barro)}</div>
         </div>`;
       break;
@@ -107,7 +108,7 @@ export function buildSlideHTML(slide, opts = {}) {
       const isCapa = slide.layout === "capa";
       textBox = `
         <div style="position:absolute;inset:0;background-image:url('${opts.photoUrl}');background-size:cover;background-position:center"></div>
-        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(46,36,29,.45) 45%,rgba(46,36,29,.92) 100%)"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02) 0%,rgba(46,36,29,.20) 35%,rgba(46,36,29,.70) 65%,rgba(46,36,29,.95) 100%)"></div>
         <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
         <div style="position:absolute;bottom:120px;left:0;right:0;padding:0 70px;color:${PALETTE.creme}">
           <p style="font-family:${isCapa ? "'Fraunces',serif" : "'Outfit',sans-serif"};font-weight:${isCapa ? 400 : 300};font-size:${isCapa ? 64 : 56}px;line-height:1.22">${body}</p>
@@ -149,13 +150,15 @@ export function buildSlideHTML(slide, opts = {}) {
       break;
     }
     case "type-on-salvia": {
-      bg = PALETTE.salvia;
+      // Verde mais profundo (Vivianne: "mais profundo"), nao o salvia da UI
+      const salviaProfunda = "#5A6857";
+      bg = salviaProfunda;
       const body = applyBold(slide.body, slide.bold, PALETTE.ouro);
       textBox = `
         <div style="position:absolute;top:36px;left:48px;color:${PALETTE.creme}">${brandMark(PALETTE.creme)}</div>
         <div style="position:absolute;inset:0;padding:140px 80px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
           <p style="font-family:'Outfit',sans-serif;font-weight:300;font-size:54px;line-height:1.32;color:${PALETTE.creme};max-width:900px;margin-bottom:60px">${body}</p>
-          <div style="background:${PALETTE.creme};color:${PALETTE.salvia};padding:24px 56px;border-radius:999px;font-family:'Outfit',sans-serif;font-size:30px;font-weight:500">freeme.viviannedossantos.com</div>
+          <div style="background:${PALETTE.creme};color:${salviaProfunda};padding:24px 56px;border-radius:999px;font-family:'Outfit',sans-serif;font-size:30px;font-weight:500">freeme.viviannedossantos.com</div>
         </div>
         <div style="position:absolute;bottom:48px;left:80px">${handleSig(PALETTE.creme)}</div>`;
       break;
