@@ -110,10 +110,11 @@ async function generateTTS(text) {
       },
       body: JSON.stringify({
         text,
-        model_id: process.env.ELEVENLABS_TTS_MODEL || "eleven_v3",
+        model_id: process.env.ELEVENLABS_TTS_MODEL || "eleven_multilingual_v2",
+        language_code: process.env.ELEVENLABS_LANG || "pt",
         voice_settings: {
-          stability: 0.70,
-          similarity_boost: 0.90,
+          stability: 0.75,
+          similarity_boost: 0.95,
           style: 0.00,
           use_speaker_boost: true,
         },
@@ -164,7 +165,22 @@ async function getAudioDuration(file) {
 
 async function buildVideo(post, workDir) {
   const dayLabel = `D${post.day} · ${post.slot === "morning" ? "10h" : "13h"}`;
+  const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
   const photoUrl = await getMJPhotoUrl(post.day, post.slot);
+
+  // Carrega overrides de texto TTS guardados pela Vivianne em
+  // freeme-assets/audio/{pKey}/_text.json (com tags (suspira), (pausa)...).
+  let ttsOverrides = {};
+  try {
+    const { data: textUrl } = supabase.storage
+      .from(BUCKET)
+      .getPublicUrl(`audio/${pKey}/_text.json`);
+    const res = await fetch(textUrl.publicUrl);
+    if (res.ok) {
+      ttsOverrides = await res.json();
+      console.log(`  tts overrides: ${Object.keys(ttsOverrides).length} slides personalizados`);
+    }
+  } catch {}
 
   // 1. Render PNG + gerar TTS para cada slide
   const slides = post.slides;
@@ -187,7 +203,9 @@ async function buildVideo(post, workDir) {
 
     // TTS: 1) tenta reusar audio aprovado em Storage (gerado/ouvido na admin).
     //      2) se nao existir, gera via ElevenLabs e sobe para mesmo path.
-    const ttsText = slide.body.replace(/[*_]/g, "").trim();
+    // Texto: se a Vivianne customizou (tags (suspira) etc.), usa esse.
+    const customText = ttsOverrides[String(i)] || ttsOverrides[i];
+    const ttsText = (customText || slide.body).replace(/[*_]/g, "").trim();
     const audioStoragePath = `audio/D${post.day}-${post.slot}/slide-${i}.mp3`;
     let audioBuf;
     try {

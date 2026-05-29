@@ -4,8 +4,10 @@ import { getAdminSupabase, ensureBucket } from "@/lib/admin/supabase-admin";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "";
-// Modelo novo (v3) preserva PT-PT. O multilingual_v2 antigo normaliza para BR.
-const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_v3";
+// multilingual_v2 e o modelo mais estavel para PT. Combinado com language_code
+// "pt" explicito, forca fonetica portuguesa em vez de o modelo escolher BR.
+const ELEVENLABS_MODEL = process.env.ELEVENLABS_TTS_MODEL || "eleven_multilingual_v2";
+const ELEVENLABS_LANG = process.env.ELEVENLABS_LANG || "pt";
 const BUCKET = "freeme-assets";
 
 export async function POST(request: Request) {
@@ -36,9 +38,10 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         text,
         model_id: ELEVENLABS_MODEL,
+        language_code: ELEVENLABS_LANG, // forca fonetica PT (em vez de BR)
         voice_settings: {
-          stability: 0.70,        // mais consistente, menos drift de sotaque
-          similarity_boost: 0.90, // proximo ao original (Vivianne PT-PT)
+          stability: 0.75,        // alto: menos drift, mais consistente
+          similarity_boost: 0.95, // muito proximo do original PT-PT
           style: 0.00,            // zero exageracao
           use_speaker_boost: true,
         },

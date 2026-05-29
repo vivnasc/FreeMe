@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ALL_POSTS } from "@/content/content-calendar";
 import { type ContentPost } from "@/content/content-types";
@@ -1278,6 +1278,42 @@ function VideoTTSPanel({ post, pKey }: { post: ContentPost; pKey: string }) {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // TTS text overrides por slide. Permite adicionar tags (suspira), (pausa)
+  // etc. para guiar entoacao do eleven_v3 sem afectar o texto visual do slide.
+  const [ttsTexts, setTtsTexts] = useState<Record<number, string>>({});
+
+  // Carrega overrides do localStorage no mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`freeme-tts-text-${pKey}`);
+      if (stored) setTtsTexts(JSON.parse(stored));
+    } catch {}
+  }, [pKey]);
+
+  function updateTtsText(i: number, val: string) {
+    setTtsTexts((prev) => {
+      const next = { ...prev, [i]: val };
+      try {
+        localStorage.setItem(`freeme-tts-text-${pKey}`, JSON.stringify(next));
+      } catch {}
+      // Persiste tambem em Storage para o GH Actions render-videos.mjs ler.
+      // Debounce 800ms para nao saturar API durante typing.
+      if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+      saveDebounceRef.current = setTimeout(() => {
+        fetch("/api/admin/tts-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pKey, texts: next }),
+        }).catch(() => {});
+      }, 800);
+      return next;
+    });
+  }
+  const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  function getTtsText(i: number, fallback: string): string {
+    return ttsTexts[i] ?? fallback;
+  }
 
   async function refresh() {
     try {
@@ -1336,7 +1372,7 @@ function VideoTTSPanel({ post, pKey }: { post: ContentPost; pKey: string }) {
     }
     if (!confirm(`Gerar TTS de ${missing.length} cenas. Vais usar créditos ElevenLabs.`)) return;
     for (const i of missing) {
-      await generateOne(i, post.slides[i].body);
+      await generateOne(i, getTtsText(i, post.slides[i].body));
     }
   }
 
@@ -1369,25 +1405,46 @@ function VideoTTSPanel({ post, pKey }: { post: ContentPost; pKey: string }) {
           {post.slides.map((slide, i) => {
             const url = audios[i];
             const isGen = generating === i;
+            const ttsVal = getTtsText(i, slide.body);
+            const isCustomized = ttsVal !== slide.body;
             return (
-              <div key={i} className="row" style={{ gap: 10, padding: 8, background: "var(--bg)", borderRadius: 4, alignItems: "center" }}>
-                <span className="mini" style={{ width: 36, color: "var(--terracota)", fontSize: 11 }}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span style={{ flex: 1, fontSize: 12, color: "var(--texto)", lineHeight: 1.4 }}>{slide.body}</span>
-                {url ? (
-                  <audio controls src={url} style={{ height: 28, maxWidth: 200 }} />
-                ) : (
-                  <span className="muted" style={{ fontSize: 11, fontStyle: "italic" }}>sem TTS</span>
-                )}
-                <button
-                  onClick={() => generateOne(i, slide.body)}
-                  disabled={isGen}
-                  className="btn"
-                  style={{ fontSize: 11, padding: "4px 8px" }}
-                >
-                  {isGen ? "..." : url ? "regerar" : "gerar"}
-                </button>
+              <div key={i} style={{ padding: 10, background: "var(--bg)", borderRadius: 4, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="row" style={{ gap: 10, alignItems: "center" }}>
+                  <span className="mini" style={{ width: 36, color: "var(--terracota)", fontSize: 11 }}>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="muted" style={{ fontSize: 10, flex: 1 }}>
+                    Texto visual: <em style={{ color: "var(--texto-suave)" }}>{slide.body.slice(0, 60)}{slide.body.length > 60 ? "..." : ""}</em>
+                  </span>
+                  {isCustomized && (
+                    <button onClick={() => updateTtsText(i, slide.body)} className="btn" style={{ fontSize: 10, padding: "2px 6px" }}>
+                      reset
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={ttsVal}
+                  onChange={(e) => updateTtsText(i, e.target.value)}
+                  rows={2}
+                  className="input"
+                  style={{ fontSize: 12, lineHeight: 1.4, fontFamily: "inherit" }}
+                  placeholder="Texto que o ElevenLabs vai ler. Podes usar (suspira), (pausa), (sussurra), (rindo) para guiar entoação."
+                />
+                <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                  {url ? (
+                    <audio controls src={url} style={{ height: 28, maxWidth: 280, flex: 1 }} />
+                  ) : (
+                    <span className="muted" style={{ fontSize: 11, fontStyle: "italic", flex: 1 }}>sem TTS</span>
+                  )}
+                  <button
+                    onClick={() => generateOne(i, ttsVal)}
+                    disabled={isGen}
+                    className="btn primary"
+                    style={{ fontSize: 11, padding: "4px 10px" }}
+                  >
+                    {isGen ? "..." : url ? "regerar" : "gerar"}
+                  </button>
+                </div>
               </div>
             );
           })}
