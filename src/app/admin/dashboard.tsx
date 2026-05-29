@@ -6,6 +6,7 @@ import { ALL_POSTS } from "@/content/content-calendar";
 import { type ContentPost } from "@/content/content-types";
 import { getMJPrompts, FREEME_STYLE_BASE } from "@/content/mj-prompts";
 import { ImageDropZone } from "@/components/image-drop-zone";
+import { buildSlideHTML } from "@/lib/slide-template.mjs";
 
 type MainView = "studio" | "conteudo" | "imagens" | "slides" | "distribuir";
 type DetailTab = "slides" | "copy" | "imagem";
@@ -216,64 +217,12 @@ export function AdminDashboard() {
               const slideId = `${postKey(selected)}-slide-${i}`;
               const imageUrl = slideImages[slideId];
               const acceptsPhoto = ["capa", "conteudo", "kinetic-line"].includes(slide.layout);
-              const palettes: Record<string, { bg: string; text: string; border: string }> = {
-                capa: { bg: "#8C4A36", text: "#FBF4EC", border: "#C87A5B" },
-                conteudo: { bg: "#FBF4EC", text: "#2E241D", border: "#F3E4D6" },
-                citacao: { bg: "#F3E4D6", text: "#8C4A36", border: "#C87A5B" },
-                cta: { bg: "#7D8A6A", text: "#FBF4EC", border: "#6E7857" },
-                assinatura: { bg: "#2E241D", text: "#FBF4EC", border: "#C87A5B" },
-                "kinetic-line": { bg: "#2E241D", text: "#FBF4EC", border: "#3E342D" },
-              };
-              const p = palettes[slide.layout] || palettes.conteudo;
+              const isLast = i === selected.slides.length - 1;
 
               return (
                 <div key={i} className="flex flex-col gap-2">
-                  <div
-                    className="rounded-2xl overflow-hidden relative cursor-pointer hover:scale-[1.02] transition-transform"
-                    style={{
-                      backgroundColor: p.bg,
-                      color: p.text,
-                      border: `1px solid ${p.border}`,
-                      aspectRatio: selected.type === "carousel" ? "4/5" : "9/16",
-                    }}
-                    onClick={() => copy(slide.body, `slide-${i}`)}
-                  >
-                    {imageUrl && (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/80" />
-                      </>
-                    )}
-                    <div className="h-full flex flex-col justify-center p-5 relative z-10">
-                      <p className="text-[9px] uppercase tracking-widest opacity-40 mb-2">{slide.layout}</p>
-                      {slide.layout === "capa" && (
-                        <>
-                          <p className={`text-sm font-serif leading-snug whitespace-pre-line ${imageUrl ? "text-white" : ""}`}>{slide.body}</p>
-                          <p className="text-[10px] italic opacity-50 mt-3">FreeMe</p>
-                        </>
-                      )}
-                      {(slide.layout === "conteudo" || slide.layout === "kinetic-line") && (
-                        <p className={`text-xs leading-relaxed whitespace-pre-line ${imageUrl ? "text-white" : ""}`}>{slide.body}</p>
-                      )}
-                      {slide.layout === "citacao" && (
-                        <p className="text-xs italic leading-relaxed">&ldquo;{slide.body}&rdquo;</p>
-                      )}
-                      {slide.layout === "cta" && (
-                        <>
-                          <p className="text-xs leading-relaxed mb-3 whitespace-pre-line">{slide.body}</p>
-                          <div className="bg-white/20 rounded-full px-3 py-1.5 self-center">
-                            <p className="text-[8px]">freeme.viviannedossantos.com</p>
-                          </div>
-                        </>
-                      )}
-                      {slide.layout === "assinatura" && (
-                        <div className="text-center">
-                          <p className="text-xs italic opacity-60">Vivianne dos Santos</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <SlidePreview slide={slide} post={selected} photoUrl={imageUrl} isLastSlide={isLast} width={300} />
+                  <p className="mini" style={{ fontSize: 10 }}>{slide.layout} · slide {i + 1}/{selected.slides.length}</p>
                   {acceptsPhoto && (
                     <SlideImageControls
                       slideId={slideId}
@@ -425,15 +374,15 @@ export function AdminDashboard() {
               <th style={{ width: 80 }}>Post</th>
               <th style={{ width: 90 }}>Tipo</th>
               <th style={{ width: 70 }}>Hora</th>
+              <th style={{ width: 100 }}>Estado</th>
               <th style={{ width: 110 }}>Categoria</th>
               <th>Título</th>
               <th style={{ width: 60, textAlign: "center" }}>Slides</th>
-              <th style={{ width: 60, textAlign: "center" }}>MJ</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((p) => {
-              const mjCount = getMJPrompts(p.day, p.slot).length;
+              const st = derivePostStatus(p, slideImages);
               return (
                 <tr
                   key={postKey(p)}
@@ -455,10 +404,14 @@ export function AdminDashboard() {
                       color: p.slot === "morning" ? "var(--ouro)" : "var(--terracota)",
                     }}>{p.time}</span>
                   </td>
+                  <td>
+                    <span className={`pill ${st.status === "ready" ? "ok" : st.status === "partial" ? "partial" : "pending"}`}>
+                      {st.status === "ready" ? "Ready" : st.status === "partial" ? `${st.mjDone}/${st.mjTotal}` : "Draft"}
+                    </span>
+                  </td>
                   <td className="muted" style={{ fontSize: 12 }}>{p.categoria}</td>
                   <td style={{ color: "var(--texto)" }}>{p.title}</td>
                   <td className="muted" style={{ textAlign: "center", fontSize: 12 }}>{p.slides.length}</td>
-                  <td style={{ textAlign: "center", fontSize: 12, color: mjCount === 0 ? "var(--bordeaux)" : "var(--texto-suave)" }}>{mjCount}</td>
                 </tr>
               );
             })}
@@ -564,11 +517,19 @@ function StudioPanel({
     }
   }
 
-  // Calcular contadores
+  // Calcular contadores + funnel (estado por post derivado do MJ generated)
   const totalCarousels = posts.filter((p) => p.type === "carousel").length;
   const totalVideos = posts.filter((p) => p.type === "video").length;
   const totalMJ = posts.reduce((sum, p) => sum + getMJPrompts(p.day, p.slot).length, 0);
   const generatedMJ = Object.keys(mjGenerated).length;
+  const funnel = posts.reduce(
+    (acc, p) => {
+      const { status } = derivePostStatus(p, mjGenerated);
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    },
+    { draft: 0, partial: 0, ready: 0, rendered: 0, published: 0 } as Record<PostStatus, number>,
+  );
 
   const diagAllOk = (() => {
     const d = diag.debug as { ok?: boolean } | undefined;
@@ -579,6 +540,40 @@ function StudioPanel({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* FUNIL DE PRODUÇÃO (padrão SyncHim §CIRCUITO-COMPLETO) */}
+      <div className="card">
+        <div className="mini" style={{ marginBottom: 12 }}>Funil de produção</div>
+        <div className="row" style={{ gap: 24 }}>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Total posts</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 500 }}>{posts.length}</div>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Draft</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: "var(--texto-suave)" }}>{funnel.draft}</div>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Em curso</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: "var(--ouro)" }}>{funnel.partial}</div>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Ready</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: "var(--terracota)" }}>{funnel.ready}</div>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Rendered</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: "var(--salvia)" }}>{funnel.rendered}</div>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Published</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: "var(--salvia)" }}>{funnel.published}</div>
+          </div>
+        </div>
+        <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>
+          {generatedMJ} / {totalMJ} imagens MJ geradas · {totalCarousels} carrosseis + {totalVideos} videos
+        </p>
+      </div>
+
       {/* FASE 0 · DIAGNÓSTICO */}
       <PhaseCard
         index={0}
@@ -937,6 +932,80 @@ function RenderPanel() {
 }
 
 // "ARRASTA FOTO" + "gerar auto" por slide. Identidade FreeMe.
+// Renderiza UMA slide usando o template oficial (mesmo HTML do GH render),
+// escalado para caber no preview do admin. Vês exactamente o que sai.
+function SlidePreview({
+  slide,
+  post,
+  photoUrl,
+  width = 220,
+  isLastSlide,
+}: {
+  slide: { layout: string; body: string; bold?: string[] };
+  post: ContentPost;
+  photoUrl?: string;
+  width?: number;
+  isLastSlide?: boolean;
+}) {
+  const isVideo = post.type === "video";
+  const baseW = 1080;
+  const baseH = isVideo ? 1920 : 1350;
+  const scale = width / baseW;
+  const html = useMemo(
+    () =>
+      buildSlideHTML(slide, {
+        photoUrl: photoUrl || undefined,
+        isCarousel: post.type === "carousel",
+        isLastSlide: !!isLastSlide,
+        isVideo,
+      }) as string,
+    [slide, photoUrl, post.type, isLastSlide, isVideo],
+  );
+
+  return (
+    <div
+      style={{
+        width,
+        height: baseH * scale,
+        overflow: "hidden",
+        borderRadius: 6,
+        background: "var(--bg)",
+      }}
+    >
+      <iframe
+        srcDoc={html}
+        sandbox="allow-same-origin"
+        style={{
+          width: baseW,
+          height: baseH,
+          transform: `scale(${scale})`,
+          transformOrigin: "0 0",
+          border: 0,
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+  );
+}
+
+// Status state machine derivado (sem DB, baseado em localStorage + storage paths futuros)
+export type PostStatus = "draft" | "partial" | "ready" | "rendered" | "published";
+
+function derivePostStatus(
+  post: ContentPost,
+  mjGenerated: Record<string, string>,
+): { status: PostStatus; mjDone: number; mjTotal: number } {
+  const slots = getMJPrompts(post.day, post.slot);
+  const total = slots.length;
+  const done = slots.filter((_, idx) => mjGenerated[`D${post.day}-${post.slot}-${idx}`]).length;
+  let status: PostStatus = "draft";
+  if (done === 0) status = "draft";
+  else if (done < total) status = "partial";
+  else status = "ready";
+  // TODO: check freeme-assets/slides/D{day}-{slot}-*.png para "rendered"
+  return { status, mjDone: done, mjTotal: total };
+}
+
 function SlideImageControls({
   slideId,
   currentUrl,

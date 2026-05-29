@@ -15,7 +15,7 @@
 
 import puppeteer from "puppeteer";
 import { createClient } from "@supabase/supabase-js";
-import { buildSlideHTML } from "./slide-template.mjs";
+import { buildSlideHTML } from "../../src/lib/slide-template.mjs";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
