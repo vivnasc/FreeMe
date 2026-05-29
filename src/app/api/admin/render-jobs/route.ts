@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin/auth";
 
-const WORKFLOW_FILE = "produce-content.yml";
-
 export async function GET() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,15 +13,16 @@ export async function GET() {
     return NextResponse.json({ error: "GITHUB_* env vars em falta" }, { status: 500 });
   }
 
+  // Lista TODAS as runs do repo e filtra client-side por workflow.
+  // Endpoint per-workflow as vezes da 404 se o workflow ainda nao correu nunca.
   const res = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=20`,
+    `https://api.github.com/repos/${owner}/${repo}/actions/runs?per_page=30`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
       },
-      // Cache 10s para nao saturar API
       next: { revalidate: 10 },
     },
   );
@@ -31,7 +30,7 @@ export async function GET() {
   if (!res.ok) {
     const err = await res.text();
     return NextResponse.json(
-      { error: `GitHub API ${res.status}: ${err.slice(0, 200)}` },
+      { error: `GitHub API ${res.status}: ${err.slice(0, 300)}`, owner, repo },
       { status: 502 },
     );
   }
@@ -41,6 +40,7 @@ export async function GET() {
       id: number;
       name: string;
       display_title: string;
+      path: string;
       status: string;
       conclusion: string | null;
       created_at: string;
@@ -52,11 +52,16 @@ export async function GET() {
     }>;
   };
 
-  const runs = data.workflow_runs.map((r) => ({
+  // Filtra para o workflow produce-content (e ignora outros)
+  const filtered = (data.workflow_runs || []).filter((r) =>
+    r.path?.includes("produce-content") || r.name?.toLowerCase().includes("produzir"),
+  );
+
+  const runs = filtered.map((r) => ({
     id: r.id,
     title: r.display_title || r.name,
-    status: r.status, // queued, in_progress, completed
-    conclusion: r.conclusion, // success, failure, cancelled, null while in progress
+    status: r.status,
+    conclusion: r.conclusion,
     createdAt: r.created_at,
     startedAt: r.run_started_at,
     updatedAt: r.updated_at,
@@ -70,5 +75,14 @@ export async function GET() {
   }));
 
   const inProgress = runs.filter((r) => r.status !== "completed").length;
-  return NextResponse.json({ runs, inProgress });
+  const totalRunsInRepo = data.workflow_runs?.length || 0;
+
+  return NextResponse.json({
+    runs,
+    inProgress,
+    totalRunsInRepo,
+    note: filtered.length === 0 && totalRunsInRepo > 0
+      ? "Repo tem runs mas nenhuma do workflow produce-content. Dispara o render em /admin/slides."
+      : undefined,
+  });
 }

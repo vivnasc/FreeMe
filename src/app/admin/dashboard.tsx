@@ -60,6 +60,21 @@ export function AdminDashboard() {
   const [detailTab, setDetailTab] = useState<DetailTab>("slides");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [slideImages, setSlideImages] = useState<Record<string, string>>({});
+  const [approved, setApprovedState] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setApprovedState(loadApproved());
+  }, []);
+
+  function toggleApproval(pKey: string) {
+    setApprovedState((prev) => {
+      const next = new Set(prev);
+      if (next.has(pKey)) next.delete(pKey);
+      else next.add(pKey);
+      saveApproved(next);
+      return next;
+    });
+  }
 
   const [fWeek, setFWeek] = useState<"all" | 1 | 2 | 3 | 4>("all");
   const [fType, setFType] = useState<"all" | "carousel" | "video">("all");
@@ -179,7 +194,26 @@ export function AdminDashboard() {
           <span className="text-xs text-creme/40">{selected.categoria}</span>
           <span className="text-xs text-creme/40">· {selected.slides.length} slides</span>
         </div>
-        <h1 className="text-lg text-creme/80 mb-6">{selected.title}</h1>
+        <h1 className="text-lg text-creme/80 mb-4">{selected.title}</h1>
+
+        {(() => {
+          const pKey = postKey(selected);
+          const isApproved = approved.has(pKey);
+          return (
+            <div className="row" style={{ marginBottom: 20, gap: 10 }}>
+              <button
+                onClick={() => toggleApproval(pKey)}
+                className={`btn ${isApproved ? "salvia" : "primary"}`}
+                style={{ fontSize: 13 }}
+              >
+                {isApproved ? "✓ Conteúdo aprovado" : "Aprovar conteúdo"}
+              </button>
+              <span className="muted" style={{ fontSize: 12 }}>
+                {isApproved ? "Pronto para gerar imagens." : "Revê slides + caption antes de aprovar."}
+              </span>
+            </div>
+          );
+        })()}
 
         <div className="flex gap-1 bg-creme/5 rounded-xl p-1 mb-8">
           {(["slides", "copy", "imagem"] as const).map((t) => (
@@ -327,6 +361,7 @@ export function AdminDashboard() {
       {view === "studio" && (
         <StudioPanel
           posts={ALL_POSTS}
+          approved={approved}
           onNavigate={(v, sub) => {
             setView(v);
             if (sub) setConteudoSub(sub);
@@ -375,6 +410,7 @@ export function AdminDashboard() {
               <th style={{ width: 90 }}>Tipo</th>
               <th style={{ width: 70 }}>Hora</th>
               <th style={{ width: 100 }}>Estado</th>
+              <th style={{ width: 90, textAlign: "center" }}>Aprovado</th>
               <th style={{ width: 110 }}>Categoria</th>
               <th>Título</th>
               <th style={{ width: 60, textAlign: "center" }}>Slides</th>
@@ -383,6 +419,8 @@ export function AdminDashboard() {
           <tbody>
             {filtered.map((p) => {
               const st = derivePostStatus(p, slideImages);
+              const pK = postKey(p);
+              const isApproved = approved.has(pK);
               return (
                 <tr
                   key={postKey(p)}
@@ -407,6 +445,11 @@ export function AdminDashboard() {
                   <td>
                     <span className={`pill ${st.status === "ready" ? "ok" : st.status === "partial" ? "partial" : "pending"}`}>
                       {st.status === "ready" ? "Ready" : st.status === "partial" ? `${st.mjDone}/${st.mjTotal}` : "Draft"}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "center" }} onClick={(e) => { e.stopPropagation(); toggleApproval(pK); }}>
+                    <span className={`pill ${isApproved ? "ok" : "pending"}`} style={{ cursor: "pointer" }}>
+                      {isApproved ? "✓" : "—"}
                     </span>
                   </td>
                   <td className="muted" style={{ fontSize: 12 }}>{p.categoria}</td>
@@ -487,9 +530,11 @@ export function AdminDashboard() {
 // ============== STUDIO PANEL — overview com fases ==============
 function StudioPanel({
   posts,
+  approved,
   onNavigate,
 }: {
   posts: ContentPost[];
+  approved: Set<string>;
   onNavigate: (view: MainView, sub?: ConteudoSub) => void;
 }) {
   const [diag, setDiag] = useState<{ debug?: unknown; claude?: unknown; replicate?: unknown }>({});
@@ -538,23 +583,62 @@ function StudioPanel({
     return d && c && r && c.ok !== false && r.ok !== false;
   })();
 
-  // Next Action: derivado do funil (padrao SyncHim "Próxima Acção" com borda dourada)
+  const approvedCount = posts.filter((p) => approved.has(`D${p.day}-${p.slot === "morning" ? "10h" : "13h"}`)).length;
+
+  // Next Action: prioriza REVISAO/APROVACAO antes de gastar em imagens
   const nextAction = (() => {
     if (!diagAllOk && Object.keys(diag).length === 0) {
-      return { title: "Corre o diagnóstico", desc: "Confirma envs + Claude + Replicate antes de gastar.", view: "studio" as MainView, label: "Ir ao Diagnóstico" };
+      return { title: "Corre o diagnóstico primeiro", desc: "Confirma envs + Claude + Replicate antes de gastar.", view: "studio" as MainView, label: "Ver diagnóstico" };
     }
-    if (funnel.draft === posts.length) {
-      return { title: `Gerar imagens (${totalMJ} prompts)`, desc: `Custo estimado ~$${(totalMJ * 0.07).toFixed(2)}. Começa com 3 carrosseis de teste.`, view: "imagens" as MainView, label: "Ir a Imagens →" };
+    if (approvedCount === 0) {
+      return {
+        title: `Revê e aprova os ${posts.length} posts em Conteúdo`,
+        desc: "Antes de gastar em imagens, clica em cada post para veres os slides + caption. Aprova os que servirem. Só depois passa à Fase 2.",
+        view: "conteudo" as MainView,
+        label: "Ir a Conteúdo →",
+      };
+    }
+    if (approvedCount < posts.length) {
+      const falta = posts.length - approvedCount;
+      return {
+        title: `Continuar revisão (${falta} posts por aprovar)`,
+        desc: `Já aprovaste ${approvedCount}/${posts.length}. Continua a rever em Conteúdo antes de avançar.`,
+        view: "conteudo" as MainView,
+        label: "Continuar revisão →",
+      };
+    }
+    if (funnel.draft + funnel.partial > 0 && generatedMJ === 0) {
+      return {
+        title: `Gerar imagens (${totalMJ} prompts)`,
+        desc: `Conteúdo aprovado. Custo estimado ~$${(totalMJ * 0.07).toFixed(2)}. Começa com 3 carrosseis de teste.`,
+        view: "imagens" as MainView,
+        label: "Ir a Imagens →",
+      };
     }
     if (funnel.draft + funnel.partial > 0) {
       const falta = totalMJ - generatedMJ;
-      return { title: `Continuar geração (${falta} em falta)`, desc: `Reusa pool onde possível. ~$${(falta * 0.07).toFixed(2)} restantes.`, view: "imagens" as MainView, label: "Continuar →" };
+      return {
+        title: `Continuar geração (${falta} imagens em falta)`,
+        desc: `Reusa pool onde possível. ~$${(falta * 0.07).toFixed(2)} restantes.`,
+        view: "imagens" as MainView,
+        label: "Continuar →",
+      };
     }
     if (funnel.rendered === 0) {
-      return { title: "Disparar render dos slides", desc: `${posts.length} posts com imagens prontas. GH Actions renderiza PNGs em ~15-30 min.`, view: "slides" as MainView, label: "Ir a Slides →" };
+      return {
+        title: "Disparar render dos slides",
+        desc: `${posts.length} posts com imagens prontas. GH Actions renderiza PNGs em ~15-30 min.`,
+        view: "slides" as MainView,
+        label: "Ir a Slides →",
+      };
     }
     if (funnel.published === 0) {
-      return { title: "Exportar CSV Metricool", desc: `${funnel.rendered} posts prontos. Escolhe data início, gera CSV, importa.`, view: "distribuir" as MainView, label: "Ir a Distribuir →" };
+      return {
+        title: "Exportar CSV Metricool",
+        desc: `${funnel.rendered} posts prontos. Escolhe data início, gera CSV, importa.`,
+        view: "distribuir" as MainView,
+        label: "Ir a Distribuir →",
+      };
     }
     return { title: "Campanha completa", desc: `${funnel.published} publicados. Tudo agendado.`, view: "studio" as MainView, label: "" };
   })();
@@ -582,6 +666,10 @@ function StudioPanel({
           <div>
             <div className="mini" style={{ fontSize: 10 }}>Total posts</div>
             <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 500 }}>{posts.length}</div>
+          </div>
+          <div>
+            <div className="mini" style={{ fontSize: 10 }}>Aprovados</div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, color: approvedCount === posts.length ? "var(--salvia)" : "var(--ouro)" }}>{approvedCount}</div>
           </div>
           <div>
             <div className="mini" style={{ fontSize: 10 }}>Draft</div>
@@ -1181,6 +1269,22 @@ function CaptionBlock({
 
 const MJ_STORAGE_KEY = "freeme-mj-generated";
 const MJ_PROMPTS_STORAGE_KEY = "freeme-mj-claude-prompts";
+const APPROVED_STORAGE_KEY = "freeme-approved-posts";
+
+function loadApproved(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const arr = JSON.parse(localStorage.getItem(APPROVED_STORAGE_KEY) || "[]") as string[];
+    return new Set(arr);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveApproved(set: Set<string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(APPROVED_STORAGE_KEY, JSON.stringify(Array.from(set)));
+}
 
 function loadGenerated(): Record<string, string> {
   if (typeof window === "undefined") return {};
