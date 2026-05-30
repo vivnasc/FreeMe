@@ -39,6 +39,9 @@ export default async function AdminLayout({
               <span className="nav-num">4</span> Distribuir
             </AdminNavLink>
             <div style={{ height: 12 }} />
+            <AdminNavLink href="/admin/renderizados">
+              <span className="nav-num">·</span> Renderizados
+            </AdminNavLink>
             <AdminNavLink href="/admin/biblioteca">
               <span className="nav-num">·</span> Biblioteca
             </AdminNavLink>
