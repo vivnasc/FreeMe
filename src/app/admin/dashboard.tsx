@@ -833,15 +833,42 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
   );
 
   function buildAndDownload() {
+    // Header OFICIAL do Metricool (ordem importa).
     const header = [
-      "Date", "Time", "Draft",
-      "Instagram", "Instagram Post Type", "Instagram Show Reel On Feed",
-      "TikTok", "TikTok Post Privacy",
-      "Text",
+      "Text", "Date", "Time", "Draft",
+      "Facebook", "Twitter/X", "LinkedIn", "GBP", "Instagram", "Pinterest", "TikTok", "Youtube", "Threads", "Bluesky",
       "Picture Url 1", "Picture Url 2", "Picture Url 3", "Picture Url 4", "Picture Url 5",
       "Picture Url 6", "Picture Url 7", "Picture Url 8", "Picture Url 9", "Picture Url 10",
-      "First Comment",
+      "Alt text picture 1", "Alt text picture 2", "Alt text picture 3", "Alt text picture 4", "Alt text picture 5",
+      "Alt text picture 6", "Alt text picture 7", "Alt text picture 8", "Alt text picture 9", "Alt text picture 10",
+      "Document title", "Shortener", "Video Thumbnail Url", "Video Cover Frame",
+      "Twitter/X Can reply", "Twitter/X Type", "Twitter/X Poll Duration minutes",
+      "Twitter/X Poll Option 1", "Twitter/X Poll Option 2", "Twitter/X Poll Option 3", "Twitter/X Poll Option 4",
+      "Pinterest Board", "Pinterest Pin Title", "Pinterest Pin Link", "Pinterest Pin New Format",
+      "Instagram Post Type", "Instagram Show Reel On Feed",
+      "Youtube Video Title", "Youtube Video Type", "Youtube Video Privacy", "Youtube video for kids",
+      "Youtube Video Category", "Youtube Video Tags", "Youtube playlist",
+      "GBP Post Type", "Facebook Post Type", "Facebook Title",
+      "First Comment Text",
+      "TikTok Title", "TikTok disable comments", "TikTok disable duet", "TikTok disable stitch",
+      "TikTok Post Privacy", "TikTok Branded Content", "TikTok Your Brand", "TikTok Auto Add Music",
+      "TikTok Photo Cover Index", "TikTok musicId", "TikTok music title", "TikTok music author",
+      "TikTok music previewUrl", "TikTok music thumbnailUrl", "TikTok music soundVolume",
+      "TikTok music originalVolume", "TikTok music startMillis", "TikTok music endMillis",
+      "TikTok is AI generated content",
+      "LinkedIn Type", "LinkedIn Poll Question",
+      "LinkedIn Poll Option 1", "LinkedIn Poll Option 2", "LinkedIn Poll Option 3", "LinkedIn Poll Option 4",
+      "LinkedIn Poll Duration", "LinkedIn Show link preview", "LinkedIn Images as Carousel",
+      "Threads Reply Control", "Threads Is Spoiler", "Threads Post Type",
     ];
+
+    // Escape CSV: envolve em aspas se tem virgula, aspa ou newline; duplica aspas internas.
+    const csvCell = (v: string | undefined): string => {
+      const s = v ?? "";
+      if (s === "") return "";
+      if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
 
     const rows = posts.map((p) => {
       const startD = new Date(startDate);
@@ -850,28 +877,32 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
       const time = `${p.time}:00`;
       const ig = igCaption(p);
       const igType = p.type === "carousel" ? "CAROUSEL" : "REEL";
-
-      // Para videos: URL unica do MP4. Para carrosseis: ate 10 PNGs.
       const isVideo = p.type === "video";
-      const slidePngs: string[] = isVideo
+
+      const mediaUrls: string[] = isVideo
         ? [`${supabasePublicBase}/storage/v1/object/public/freeme-assets/videos/D${p.day}-${p.slot}.mp4`]
         : Array.from({ length: Math.min(p.slides.length, 10) }, (_, i) =>
             `${supabasePublicBase}/storage/v1/object/public/freeme-assets/slides/D${p.day}-${p.slot}-${String(i).padStart(2, "0")}.png`
           );
 
-      // First comment (1° comentario auto) com mention extra + diagnostico CTA
       const firstComment = `Diagnóstico grátis: freeme.viviannedossantos.com\n\nSe te tocou, partilha com uma mãe que precisa. ${VIVIANNE_HANDLE}`;
 
-      const cells = new Array(header.length).fill("");
-      cells[0] = date;
-      cells[1] = time;
-      cells[2] = "FALSE";
-      cells[3] = "TRUE"; cells[4] = igType; cells[5] = isVideo ? "TRUE" : "FALSE";
-      cells[6] = "TRUE"; cells[7] = "PUBLIC_TO_EVERYONE";
-      cells[8] = `"${ig.replace(/"/g, '""')}"`;
-      slidePngs.slice(0, 10).forEach((u, i) => { cells[9 + i] = u; });
-      cells[19] = `"${firstComment.replace(/"/g, '""')}"`;
-      return cells.join(",");
+      // Map por nome de coluna -> valor (so meto o que e relevante; resto fica vazio)
+      const row: Record<string, string> = {
+        Text: ig,
+        Date: date,
+        Time: time,
+        Draft: "FALSE",
+        Instagram: "TRUE",
+        TikTok: "TRUE",
+        "Instagram Post Type": igType,
+        "Instagram Show Reel On Feed": isVideo ? "TRUE" : "FALSE",
+        "TikTok Post Privacy": "PUBLIC_TO_EVERYONE",
+        "First Comment Text": firstComment,
+      };
+      mediaUrls.forEach((u, i) => { row[`Picture Url ${i + 1}`] = u; });
+
+      return header.map((col) => csvCell(row[col])).join(",");
     });
 
     const csv = [header.join(","), ...rows].join("\r\n") + "\r\n";
