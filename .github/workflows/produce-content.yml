@@ -92,7 +92,14 @@ jobs:
           FREEME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FREEME_SUPABASE_SERVICE_ROLE_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
-        run: node tools/produce/render-videos.mjs --scope=${{ inputs.scope }} --concurrency=2
+        # Para scope=all mantemos skip-existing (resume seguro). Scopes especificos
+        # (day-N, semana-N) forcam re-render senao a Vivianne ve a versao antiga.
+        run: |
+          if [ "${{ inputs.scope }}" = "all" ]; then
+            node tools/produce/render-videos.mjs --scope=${{ inputs.scope }} --concurrency=2
+          else
+            node tools/produce/render-videos.mjs --scope=${{ inputs.scope }} --concurrency=2 --skip-existing=false
+          fi
 
       - name: Upload posts.json as artifact
         if: always()
