@@ -42,7 +42,7 @@ function applyBold(body, boldList, boldColor) {
 
 // Decide qual dos 3 modos visuais usar para um (layout, hasPhoto)
 function visualModeFor(layout, hasPhoto) {
-  if (layout === "kinetic-line") return hasPhoto ? "photo-dark" : "type-on-carvao";
+  if (layout === "kinetic-line") return "kinetic";
   if (layout === "capa") return hasPhoto ? "photo-dark" : "type-on-barro";
   if (layout === "conteudo") return hasPhoto ? "photo-cream" : "type-on-creme";
   if (layout === "citacao") return "type-on-areia";
@@ -180,6 +180,29 @@ export function buildSlideHTML(slide, opts = {}) {
           <div style="background:${PALETTE.creme};color:${salviaProfunda};padding:26px 60px;border-radius:999px;font-family:'Outfit',sans-serif;font-size:32px;font-weight:500">freeme.viviannedossantos.com</div>
         </div>
         <div style="position:absolute;bottom:48px;left:80px;z-index:5">${handleSig(PALETTE.creme)}</div>`;
+      break;
+    }
+    case "kinetic": {
+      // Video kinetic-line: tipografia GRANDE centrada, fundo escuro que cicla
+      // por slide (carvao -> barro -> salvia profundo) para criar ritmo visual
+      // quando os frames sao cortados em sequencia. Bold em ouro punch.
+      const cycle = [PALETTE.carvao, "#5A3829", "#2D3A28"]; // carvao, barro escuro, salvia profundo
+      const isFirstWithPhoto = (slideIndex === 1) && opts.photoUrl;
+      bg = cycle[((slideIndex || 1) - 1) % cycle.length];
+      const body = applyBold(slide.body, slide.bold, PALETTE.ouro);
+      // Primeira linha (capa do video) com foto MJ + overlay escuro
+      const photoLayer = isFirstWithPhoto ? `
+        <div style="position:absolute;inset:0;background-image:url('${opts.photoUrl}');background-size:cover;background-position:center"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(46,36,29,.55) 0%,rgba(46,36,29,.85) 100%)"></div>` : "";
+      // Ornamento: linha terracota fina por cima do texto
+      textBox = `
+        ${photoLayer}
+        <div style="position:absolute;top:48px;left:50%;transform:translateX(-50%);color:${PALETTE.creme};z-index:3">${brandMark(PALETTE.creme)}</div>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 90px;z-index:2">
+          <div style="width:60px;height:2px;background:${PALETTE.terracota};opacity:.7;margin-bottom:48px"></div>
+          <p style="font-family:'Fraunces',serif;font-weight:400;font-size:88px;line-height:1.15;color:${PALETTE.creme};max-width:920px">${body}</p>
+        </div>
+        <div style="position:absolute;bottom:56px;left:50%;transform:translateX(-50%);z-index:5">${handleSig(PALETTE.creme)}</div>`;
       break;
     }
     case "type-on-carvao": {

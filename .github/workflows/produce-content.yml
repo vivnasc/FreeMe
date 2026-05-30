@@ -35,7 +35,7 @@ jobs:
   render:
     # ubuntu-22.04 por causa dos pacotes -t64 no 24.04 que partem o puppeteer (SyncHim §14)
     runs-on: ubuntu-22.04
-    timeout-minutes: 90
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +63,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           FREEME_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FREEME_SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run produce:render -- --scope=${{ inputs.scope }} --concurrency=4
+        run: npm run produce:render -- --scope=${{ inputs.scope }} --concurrency=6
 
       - name: Bulk TTS (audio-only, sem montar video)
         if: ${{ inputs.scope == 'tts-only' || contains(inputs.scope, '-tts') }}
