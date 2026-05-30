@@ -346,18 +346,23 @@ async function buildVideo(post, workDir) {
     inputs.push("-i", seg.audioPath);
   });
 
-  // Cada audio: prefixado com silencio adelay para o seu start time, com pad trailing
-  // para o intervalo ate ao proximo. Concatenacao via concat filter.
+  // Cada audio leva so silencio TRAILING para o intervalo ate ao proximo.
+  // SO o primeiro tem adelay (intro pad). Concat junta tudo em sequencia.
+  // BUG anterior: adelay em todos somava sotaque cada vez maior - voz chegava
+  // depois da legenda ja ter passado.
   const audioLabels = [];
   const audioFilters = timedSegments.map((seg, i) => {
     const inputIdx = i + 1; // input 0 e o bg, audios comecam em 1
-    const delayMs = Math.round(seg.start * 1000);
     const padDur = (i === timedSegments.length - 1)
       ? TAIL_PAD
       : (timedSegments[i + 1].start - seg.end);
     const label = `a${i}`;
     audioLabels.push(`[${label}]`);
-    return `[${inputIdx}:a]adelay=${delayMs}|${delayMs},apad=pad_dur=${padDur.toFixed(3)}[${label}]`;
+    if (i === 0) {
+      const introMs = Math.round(INTRO_PAD * 1000);
+      return `[${inputIdx}:a]adelay=${introMs}|${introMs},apad=pad_dur=${padDur.toFixed(3)}[${label}]`;
+    }
+    return `[${inputIdx}:a]apad=pad_dur=${padDur.toFixed(3)}[${label}]`;
   });
   const audioMix = `${audioLabels.join("")}concat=n=${audioLabels.length}:v=0:a=1[aout]`;
 
