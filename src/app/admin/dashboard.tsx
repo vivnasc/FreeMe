@@ -832,7 +832,25 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
     () => process.env.NEXT_PUBLIC_SUPABASE_URL || ""
   );
 
-  function buildAndDownload() {
+  function buildAndDownload(onlyMissing = false) {
+    // Os 12 posts que o Metricool ignorou no primeiro import (linhas 42-61, ver
+    // "12 posts ignored" no diálogo de Import). Permite re-export so destes.
+    const MISSING_PKEYS = new Set([
+      "D21-morning", "D21-evening",
+      "D22-morning",
+      "D23-evening",
+      "D24-morning",
+      "D25-evening",
+      "D26-morning",
+      "D27-evening",
+      "D28-morning",
+      "D29-evening",
+      "D30-morning", "D30-evening",
+    ]);
+    const sourcePosts = onlyMissing
+      ? posts.filter((p) => MISSING_PKEYS.has(`D${p.day}-${p.slot}`))
+      : posts;
+
     // Header OFICIAL do Metricool (ordem importa).
     const header = [
       "Text", "Date", "Time", "Draft",
@@ -870,7 +888,7 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
       return s;
     };
 
-    const rows = posts.map((p) => {
+    const rows = sourcePosts.map((p) => {
       const startD = new Date(startDate);
       startD.setDate(startD.getDate() + (p.day - 1));
       const date = startD.toISOString().split("T")[0];
@@ -909,7 +927,7 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `freeme-metricool-${startDate}.csv`;
+    a.download = `freeme-metricool-${startDate}${onlyMissing ? "-12-em-falta" : ""}.csv`;
     a.click();
   }
 
@@ -963,12 +981,22 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
         </span>
       </label>
 
-      <button onClick={buildAndDownload} className="btn primary" disabled={!supabasePublicBase}>
-        Download CSV ({posts.length} posts)
-      </button>
+      <div className="row tight">
+        <button onClick={() => buildAndDownload(false)} className="btn primary" disabled={!supabasePublicBase}>
+          Download CSV ({posts.length} posts)
+        </button>
+        <button onClick={() => buildAndDownload(true)} className="btn" disabled={!supabasePublicBase}>
+          Download CSV (12 em falta no Metricool)
+        </button>
+      </div>
 
       <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
         ⚠ Os PNGs/MP4s nos URLs do CSV têm de existir no Storage (Fase 3) antes de o Metricool publicar.
+      </p>
+      <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+        ℹ &ldquo;12 em falta&rdquo; = D21 (ambos), D22-morning, D23-evening, D24-morning, D25-evening,
+        D26-morning, D27-evening, D28-morning, D29-evening, D30 (ambos). Linhas 42-61 que o Metricool
+        ignorou no primeiro import.
       </p>
     </div>
   );
