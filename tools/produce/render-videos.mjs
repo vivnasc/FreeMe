@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Renderiza videos kinetic-line: 1 PNG por linha + TTS por linha + ffmpeg stitch -> MP4.
-// Le posts.json (gerado por dump-posts.ts) e processa apenas os do tipo "video".
+// Renderiza videos kinetic-line ao estilo Reels: 1 foto MJ de fundo + legendas
+// ASS sincronizadas com TTS por linha, queimadas com ffmpeg num so passo.
 //
 // Env required:
 //   NEXT_PUBLIC_SUPABASE_URL, FREEME_SUPABASE_SERVICE_ROLE_KEY
@@ -9,13 +9,13 @@
 // Output: freeme-assets/videos/D{day}-{slot}.mp4
 //
 // Flags:
-//   --scope=all|semana-N|day-N
-//   --concurrency=2  (Default 2 para nao saturar ElevenLabs)
-//   --skip-existing  (Default true)
+//   --scope=all|semana-N|day-N|tts-only|day-N-tts
+//   --concurrency=2
+//   --skip-existing
+//   --audio-only=true  (gera so MP3s para Storage, salta video)
 
 import puppeteer from "puppeteer";
 import { createClient } from "@supabase/supabase-js";
-import { buildSlideHTML } from "../../src/lib/slide-template.mjs";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -33,18 +33,18 @@ const SCOPE = args.scope || "all";
 const CONCURRENCY = Number(args.concurrency || 2);
 const SKIP_EXISTING = args["skip-existing"] !== "false";
 const AUDIO_ONLY = args["audio-only"] === "true";
+const FONTS_DIR = path.resolve("tools/produce/fonts");
 
 // v3 voice tags por tipo de slide - performance varia consoante a mensagem.
-// Tags entre parenteses sao direcao de performance (v3 nao as fala).
 function voiceTagFor(slide) {
   switch (slide.layout) {
-    case "capa":        return "(amigável)";       // abertura, puxa o ouvinte
-    case "conteudo":    return "(didática)";        // ensina com clareza
-    case "kinetic-line":return "(didática)";        // linha de video = expor ideia
-    case "citacao":     return "(reflexiva)";       // citacao = pausa contemplativa
-    case "cta":         return "(compreensiva)";    // convite caloroso
-    case "assinatura":  return "(com calma)";       // fechamento sereno
-    default:            return "(amigável)";
+    case "capa":         return "(amigável)";
+    case "conteudo":     return "(didática)";
+    case "kinetic-line": return "(didática)";
+    case "citacao":      return "(reflexiva)";
+    case "cta":          return "(compreensiva)";
+    case "assinatura":   return "(com calma)";
+    default:             return "(amigável)";
   }
 }
 
@@ -98,9 +98,8 @@ function filterByScope(posts, scope) {
 }
 
 async function getMJPhotoUrl(day, slot) {
-  // Para videos so ha 1 foto MJ por post (slideIndex 0)
-  const path = `mj/D${day}-${slot}-0.jpg`;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const p = `mj/D${day}-${slot}-0.jpg`;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(p);
   const head = await fetch(data.publicUrl, { method: "HEAD" });
   return head.ok ? data.publicUrl : null;
 }
@@ -133,17 +132,6 @@ async function generateTTS(text) {
   return Buffer.from(await res.arrayBuffer());
 }
 
-async function renderSlidePNG(browser, slide, photoUrl, dayLabel, opts = {}) {
-  const html = buildSlideHTML(slide, { photoUrl, dayLabel, isVideo: true, ...opts });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
-  await page.setContent(html, { waitUntil: "networkidle0" });
-  await page.evaluate(() => document.fonts.ready);
-  const buf = await page.screenshot({ type: "png" });
-  await page.close();
-  return buf;
-}
-
 function ffmpeg(args) {
   return new Promise((resolve, reject) => {
     const p = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
@@ -151,7 +139,7 @@ function ffmpeg(args) {
     p.stderr.on("data", (d) => { err += d.toString(); });
     p.on("close", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`ffmpeg exit ${code}: ${err.slice(-500)}`));
+      else reject(new Error(`ffmpeg exit ${code}: ${err.slice(-800)}`));
     });
   });
 }
@@ -171,13 +159,104 @@ async function getAudioDuration(file) {
   });
 }
 
+// ============================ HELPERS LEGENDA ============================
+
+// Remove tag de performance (ex "(amigável)") do inicio do texto para a legenda.
+function stripVoiceTag(text) {
+  return text.replace(/^\s*\([^)]*\)\s*/, "").trim();
+}
+
+// Converte segundos em formato ASS H:MM:SS.cs (centesimos)
+function toASStime(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const cs = Math.round((sec - Math.floor(sec)) * 100);
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(cs).padStart(2, "0")}`;
+}
+
+// Escapa caracteres especiais ASS e converte \n -> \N
+function escapeASS(s) {
+  return s.replace(/\\/g, "\\\\").replace(/[{}]/g, "").replace(/\n/g, "\\N");
+}
+
+// Aplica bold (ouro) inline a frases da bold list usando ASS color override.
+// Cor primary: &H00FBF4EC (creme BGR). Cor bold: &H004AAEEB (ouro BGR).
+function applyBoldASS(text, boldList) {
+  let out = text;
+  for (const phrase of boldList || []) {
+    const escaped = escapeASS(phrase);
+    const idx = out.indexOf(escaped);
+    if (idx === -1) continue;
+    out = out.slice(0, idx)
+        + `{\\c&H004AAEEB&}${escaped}{\\c&H00FBF4EC&}`
+        + out.slice(idx + escaped.length);
+  }
+  return out;
+}
+
+// Constroi ficheiro .ass com legendas sincronizadas. segments: [{ start, end, text, bold }]
+function buildASS(segments) {
+  const header = `[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Fraunces,76,&H00FBF4EC,&H000000FF,&H80000000,&H80000000,0,0,0,0,100,100,0,0,1,4,3,2,90,90,360,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
+  const dialogues = segments.map((seg) => {
+    const cleanText = applyBoldASS(escapeASS(stripVoiceTag(seg.text)), seg.bold);
+    return `Dialogue: 0,${toASStime(seg.start)},${toASStime(seg.end)},Default,,0,0,0,,{\\fad(220,260)}${cleanText}`;
+  }).join("\n");
+  return header + dialogues + "\n";
+}
+
+// ============================ RENDER BG (foto + brand) ============================
+
+async function renderKineticBG(browser, photoUrl) {
+  const fallbackBg = "#2E241D"; // carvao
+  const photoLayer = photoUrl
+    ? `<div style="position:absolute;inset:0;background-image:url('${photoUrl}');background-size:cover;background-position:center"></div>`
+    : "";
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;1,400&family=Outfit:wght@300;400&display=block" rel="stylesheet" />
+<style>* { margin:0; padding:0; box-sizing:border-box }
+html,body { width:1080px; height:1920px; overflow:hidden }
+body { background:${fallbackBg}; position:relative }</style>
+</head><body>
+  ${photoLayer}
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(46,36,29,.45) 0%,rgba(46,36,29,.25) 20%,rgba(46,36,29,.25) 55%,rgba(46,36,29,.75) 80%,rgba(46,36,29,.92) 100%)"></div>
+  <div style="position:absolute;top:60px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;color:#FBF4EC;font-family:'Fraunces',serif;font-size:26px;font-style:italic;letter-spacing:.02em">
+    <svg viewBox="0 0 512 512" width="32" height="32"><path d="M256 256 C256 210 220 180 180 180 C130 180 100 220 100 270 C100 340 150 390 220 390 C320 390 380 320 380 220 C380 130 310 70 220 70 C120 70 50 150 50 250 C50 380 150 470 290 470 C345 470 385 455 425 425" fill="none" stroke="#FBF4EC" stroke-width="22" stroke-linecap="round"/></svg>
+    FreeMe
+  </div>
+  <div style="position:absolute;bottom:54px;left:50%;transform:translateX(-50%);color:#FBF4EC;font-family:'Outfit',sans-serif;font-size:22px;letter-spacing:.06em;opacity:.65">@vivianne.dos.santos</div>
+<script>window.READY=true</script></body></html>`;
+
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
+  await page.setContent(html, { waitUntil: "networkidle0" });
+  await page.evaluate(() => document.fonts.ready);
+  const buf = await page.screenshot({ type: "png" });
+  await page.close();
+  return buf;
+}
+
+// ============================ BUILD VIDEO ============================
+
 async function buildVideo(post, workDir) {
-  const dayLabel = `D${post.day} · ${post.slot === "morning" ? "10h" : "13h"}`;
   const pKey = `D${post.day}-${post.slot === "morning" ? "10h" : "13h"}`;
   const photoUrl = await getMJPhotoUrl(post.day, post.slot);
 
-  // Carrega overrides de texto TTS guardados pela Vivianne em
-  // freeme-assets/audio/{pKey}/_text.json (com tags (suspira), (pausa)...).
+  // Overrides de texto TTS guardados pela Vivianne em audio/{pKey}/_text.json
   let ttsOverrides = {};
   try {
     const { data: textUrl } = supabase.storage
@@ -186,36 +265,18 @@ async function buildVideo(post, workDir) {
     const res = await fetch(textUrl.publicUrl);
     if (res.ok) {
       ttsOverrides = await res.json();
-      console.log(`  tts overrides: ${Object.keys(ttsOverrides).length} slides personalizados`);
+      console.log(`  tts overrides: ${Object.keys(ttsOverrides).length} slides`);
     }
   } catch {}
 
-  // 1. Render PNG + gerar TTS para cada slide
   const slides = post.slides;
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--font-render-hinting=none"],
-  });
 
+  // 1. Gerar/reusar TTS por linha + medir duracoes
   const segments = [];
   for (let i = 0; i < slides.length; i++) {
     const slide = slides[i];
-    console.log(`  slide ${i + 1}/${slides.length}: ${slide.body.slice(0, 40)}...`);
-
-    const pngBuf = await renderSlidePNG(browser, slide, photoUrl, dayLabel, {
-      slideIndex: i + 1,
-      totalSlides: slides.length,
-    });
-    const pngPath = path.join(workDir, `slide-${i}.png`);
-    await fs.writeFile(pngPath, pngBuf);
-
-    // TTS: 1) tenta reusar audio aprovado em Storage (gerado/ouvido na admin).
-    //      2) se nao existir, gera via ElevenLabs e sobe para mesmo path.
-    // Texto: se a Vivianne customizou (tags (suspira) etc.), usa esse.
     const customText = ttsOverrides[String(i)] || ttsOverrides[i];
     const rawText = (customText || slide.body).replace(/[*_]/g, "").trim();
-    // Se o texto custom ja comeca com tag entre parenteses, respeitar.
-    // Caso contrario prepend tag baseada no layout.
     const hasTag = /^\s*\(/.test(rawText);
     const ttsText = hasTag ? rawText : `${voiceTagFor(slide)} ${rawText}`;
     const audioStoragePath = `audio/${pKey}/slide-${i}.mp3`;
@@ -226,12 +287,12 @@ async function buildVideo(post, workDir) {
       if (head.ok) {
         const got = await fetch(audioUrl.publicUrl);
         audioBuf = Buffer.from(await got.arrayBuffer());
-        console.log(`  audio: reusado ${audioStoragePath}`);
+        console.log(`  slide ${i + 1}/${slides.length}: audio reusado`);
       }
     } catch {}
     if (!audioBuf) {
       audioBuf = await generateTTS(ttsText);
-      console.log(`  audio: gerado ${audioStoragePath}`);
+      console.log(`  slide ${i + 1}/${slides.length}: TTS gerado (${ttsText.slice(0, 40)}...)`);
       await supabase.storage.from(BUCKET).upload(audioStoragePath, audioBuf, {
         contentType: "audio/mpeg", upsert: true,
       });
@@ -240,42 +301,83 @@ async function buildVideo(post, workDir) {
     await fs.writeFile(audioPath, audioBuf);
     const duration = await getAudioDuration(audioPath);
 
-    segments.push({ pngPath, audioPath, duration });
+    segments.push({
+      audioPath,
+      duration,
+      text: rawText,        // texto cru (sem markdown)
+      bold: slide.bold || [],
+    });
   }
-  await browser.close();
 
-  // Audio-only: ja temos todos os MP3s em Storage, salta a montagem.
   if (AUDIO_ONLY) {
     return null;
   }
 
-  // 2. Para cada segmento: png + mp3 -> mp4 segment
-  for (let i = 0; i < segments.length; i++) {
-    const { pngPath, audioPath, duration } = segments[i];
-    const segPath = path.join(workDir, `seg-${i}.mp4`);
-    // Padding 0.3s antes e depois do audio
-    const totalDur = duration + 0.6;
-    await ffmpeg([
-      "-y",
-      "-loop", "1", "-t", String(totalDur), "-i", pngPath,
-      "-i", audioPath,
-      "-c:v", "libx264", "-tune", "stillimage", "-pix_fmt", "yuv420p",
-      "-c:a", "aac", "-b:a", "192k",
-      "-af", `adelay=300|300,apad,atrim=0:${totalDur}`,
-      "-vf", "scale=1080:1920,setsar=1",
-      "-shortest",
-      segPath,
-    ]);
-    segments[i].segPath = segPath;
-  }
+  // 2. Render fundo unico (foto MJ + brand) - puppeteer
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--font-render-hinting=none"],
+  });
+  const bgBuf = await renderKineticBG(browser, photoUrl);
+  await browser.close();
+  const bgPath = path.join(workDir, "bg.png");
+  await fs.writeFile(bgPath, bgBuf);
 
-  // 3. Concat segments -> video final
-  const listFile = path.join(workDir, "concat.txt");
-  await fs.writeFile(listFile, segments.map((s) => `file '${s.segPath}'`).join("\n"));
+  // 3. Calcular timings cumulativos + construir ASS
+  const INTRO_PAD = 0.3;
+  const GAP_BETWEEN = 0.45;
+  const TAIL_PAD = 0.4;
+  let cursor = INTRO_PAD;
+  const timedSegments = segments.map((seg, i) => {
+    const start = cursor;
+    const end = cursor + seg.duration;
+    cursor = end + (i === segments.length - 1 ? 0 : GAP_BETWEEN);
+    return { ...seg, start, end };
+  });
+  const totalDur = cursor + TAIL_PAD;
+
+  const assPath = path.join(workDir, "captions.ass");
+  await fs.writeFile(assPath, buildASS(timedSegments));
+
+  // 4. Construir comando ffmpeg unico:
+  //    -loop bg + N audios + filter_complex (delay+concat audio, subtitles burn)
+  const inputs = ["-loop", "1", "-t", String(totalDur), "-i", bgPath];
+  segments.forEach((seg) => {
+    inputs.push("-i", seg.audioPath);
+  });
+
+  // Cada audio: prefixado com silencio adelay para o seu start time, com pad trailing
+  // para o intervalo ate ao proximo. Concatenacao via concat filter.
+  const audioLabels = [];
+  const audioFilters = timedSegments.map((seg, i) => {
+    const inputIdx = i + 1; // input 0 e o bg, audios comecam em 1
+    const delayMs = Math.round(seg.start * 1000);
+    const padDur = (i === timedSegments.length - 1)
+      ? TAIL_PAD
+      : (timedSegments[i + 1].start - seg.end);
+    const label = `a${i}`;
+    audioLabels.push(`[${label}]`);
+    return `[${inputIdx}:a]adelay=${delayMs}|${delayMs},apad=pad_dur=${padDur.toFixed(3)}[${label}]`;
+  });
+  const audioMix = `${audioLabels.join("")}concat=n=${audioLabels.length}:v=0:a=1[aout]`;
+
+  // Subtitles filter: precisa de caminho absoluto e escape de :
+  const assEscaped = assPath.replace(/:/g, "\\:");
+  const videoFilter = `[0:v]subtitles=${assEscaped}:fontsdir=${FONTS_DIR}[vout]`;
+
+  const filterComplex = [...audioFilters, audioMix, videoFilter].join(";");
+
   const finalPath = path.join(workDir, "final.mp4");
   await ffmpeg([
-    "-y", "-f", "concat", "-safe", "0", "-i", listFile,
-    "-c", "copy",
+    "-y",
+    ...inputs,
+    "-filter_complex", filterComplex,
+    "-map", "[vout]", "-map", "[aout]",
+    "-c:v", "libx264", "-preset", "medium", "-tune", "stillimage",
+    "-pix_fmt", "yuv420p", "-r", "30",
+    "-c:a", "aac", "-b:a", "192k",
+    "-t", String(totalDur),
+    "-shortest",
     finalPath,
   ]);
 
@@ -288,7 +390,7 @@ async function processOne(post) {
     console.log(`${dayLabel}: skip (video existe)`);
     return { ok: true, skipped: true, key: dayLabel };
   }
-  console.log(`${dayLabel}: ${AUDIO_ONLY ? "TTS bulk" : "a gerar video"} (${post.slides.length} slides)`);
+  console.log(`${dayLabel}: ${AUDIO_ONLY ? "TTS bulk" : "video legenda"} (${post.slides.length} linhas)`);
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `freeme-video-${dayLabel}-`));
   try {
     const buf = await buildVideo(post, workDir);
@@ -327,11 +429,11 @@ async function withConcurrency(items, limit, worker) {
 }
 
 async function main() {
-  console.log(`Scope: ${SCOPE}, concurrency: ${CONCURRENCY}`);
+  console.log(`Scope: ${SCOPE}, concurrency: ${CONCURRENCY}, audio-only: ${AUDIO_ONLY}`);
   await ensureBucket();
   const allPosts = await loadPosts();
   const posts = filterByScope(allPosts, SCOPE);
-  console.log(`Videos para gerar: ${posts.length}/${allPosts.length}`);
+  console.log(`Videos para processar: ${posts.length}/${allPosts.length}`);
 
   const results = await withConcurrency(posts, CONCURRENCY, processOne);
   const ok = results.filter((r) => r.ok && !r.value?.skipped).length;
