@@ -103,9 +103,24 @@ async function uploadSlide(buffer, path) {
   return data.publicUrl;
 }
 
+async function slideAlreadyExists(outPath) {
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(outPath);
+  const head = await fetch(data.publicUrl, { method: "HEAD" });
+  return head.ok;
+}
+
 async function renderOne(browser, post, slide, slideIdx, photoSlideIdxs) {
+  const outPath = `slides/D${post.day}-${post.slot}-${String(slideIdx).padStart(2, "0")}.png`;
+
+  // Skip se o slide ja existe em Storage (resume seguro depois de falha parcial).
+  if (process.env.SKIP_EXISTING_SLIDES !== "false") {
+    if (await slideAlreadyExists(outPath)) {
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(outPath);
+      return { post: `D${post.day}-${post.slot}`, slide: slideIdx, url: data.publicUrl, skipped: true };
+    }
+  }
+
   // Determine if this slide gets an MJ photo background.
-  // photoSlideIdxs is the set of slideIndex values that have an MJ photo for this post.
   const photoIdx = photoSlideIdxs.find((idx) => idx === slideIdx);
   const photoUrl = photoIdx !== undefined ? await getMJPhotoUrl(post.day, post.slot, photoIdx) : null;
 
@@ -124,17 +139,32 @@ async function renderOne(browser, post, slide, slideIdx, photoSlideIdxs) {
   const w = isVideo ? 1080 : 1080;
   const h = isVideo ? 1920 : 1350;
 
-  const page = await browser.newPage();
-  await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
-  await page.setContent(html, { waitUntil: "networkidle0" });
-  await page.evaluate(() => document.fonts.ready);
-
-  const buffer = await page.screenshot({ type: "png", omitBackground: false });
-  await page.close();
-
-  const outPath = `slides/D${post.day}-${post.slot}-${String(slideIdx).padStart(2, "0")}.png`;
-  const url = await uploadSlide(buffer, outPath);
-  return { post: `D${post.day}-${post.slot}`, slide: slideIdx, url };
+  // Retry com backoff: imagens MJ lentas/rede instavel podem fazer screenshot
+  // ou networkidle timeout. 3 tentativas: 2s, 4s, 8s.
+  const MAX_ATTEMPTS = 3;
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const page = await browser.newPage();
+    try {
+      page.setDefaultTimeout(60000);
+      await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
+      // waitUntil "load" e mais robusto que "networkidle0" quando imagens
+      // MJ demoram (que e o caso aqui).
+      await page.setContent(html, { waitUntil: "load", timeout: 45000 });
+      await page.evaluate(() => document.fonts.ready);
+      const buffer = await page.screenshot({ type: "png", omitBackground: false, timeout: 45000 });
+      await page.close();
+      const url = await uploadSlide(buffer, outPath);
+      return { post: `D${post.day}-${post.slot}`, slide: slideIdx, url };
+    } catch (err) {
+      lastErr = err;
+      try { await page.close(); } catch {}
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 2000 * Math.pow(2, attempt - 1)));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 async function processWithConcurrency(items, limit, worker) {
@@ -184,9 +214,10 @@ async function main() {
 
   await browser.close();
 
-  const ok = results.filter((r) => r.ok);
+  const ok = results.filter((r) => r.ok && !r.value?.skipped);
+  const skipped = results.filter((r) => r.ok && r.value?.skipped);
   const failed = results.filter((r) => !r.ok);
-  console.log(`Done. OK: ${ok.length}, Failed: ${failed.length}`);
+  console.log(`Done. OK: ${ok.length}, Skipped (ja existiam): ${skipped.length}, Failed: ${failed.length}`);
   if (failed.length > 0) {
     for (const f of failed.slice(0, 10)) {
       console.error(`FAIL D${f.item.post.day}-${f.item.post.slot} slide ${f.item.idx}: ${f.error}`);
