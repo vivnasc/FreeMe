@@ -828,18 +828,9 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
     d.setDate(d.getDate() + 1);
     return d.toISOString().split("T")[0];
   });
-  const [supabasePublicBase, setSupabasePublicBase] = useState<string>("");
-
-  useEffect(() => {
-    // Tenta carregar de /api/admin/auth/debug a NEXT_PUBLIC_SUPABASE_URL (devolvida com prefix)
-    fetch("/api/admin/auth/debug")
-      .then((r) => r.json())
-      .then((d) => {
-        const url = d?.envs?.find?.((e: { name: string }) => e.name === "NEXT_PUBLIC_SUPABASE_URL");
-        if (url?.prefix) setSupabasePublicBase("");
-      })
-      .catch(() => {});
-  }, []);
+  const [supabasePublicBase, setSupabasePublicBase] = useState<string>(
+    () => process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+  );
 
   function buildAndDownload() {
     const header = [
