@@ -832,7 +832,9 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
     () => process.env.NEXT_PUBLIC_SUPABASE_URL || ""
   );
 
-  function buildAndDownload(onlyMissing = false) {
+  function buildAndDownload(mode: "all" | "missing12" | "tiktok-only" = "all") {
+    const onlyMissing = mode === "missing12";
+    const tiktokOnly = mode === "tiktok-only";
     // Os 12 posts que o Metricool ignorou no primeiro import (linhas 42-61, ver
     // "12 posts ignored" no diálogo de Import). Permite re-export so destes.
     const MISSING_PKEYS = new Set([
@@ -900,7 +902,8 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
       const mediaUrls: string[] = isVideo
         ? [`${supabasePublicBase}/storage/v1/object/public/freeme-assets/videos/D${p.day}-${p.slot}.mp4`]
         : Array.from({ length: Math.min(p.slides.length, 10) }, (_, i) =>
-            `${supabasePublicBase}/storage/v1/object/public/freeme-assets/slides/D${p.day}-${p.slot}-${String(i).padStart(2, "0")}.png`
+            // JPG (TikTok recusa PNG). IG aceita ambos.
+            `${supabasePublicBase}/storage/v1/object/public/freeme-assets/slides/D${p.day}-${p.slot}-${String(i).padStart(2, "0")}.jpg`
           );
 
       const firstComment = `Diagnóstico grátis: freeme.viviannedossantos.com\n\nSe te tocou, partilha com uma mãe que precisa. ${VIVIANNE_HANDLE}`;
@@ -911,12 +914,12 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
         Date: date,
         Time: time,
         Draft: "FALSE",
-        Instagram: "TRUE",
+        Instagram: tiktokOnly ? "" : "TRUE",
         TikTok: "TRUE",
-        "Instagram Post Type": igType,
-        "Instagram Show Reel On Feed": isVideo ? "TRUE" : "FALSE",
+        "Instagram Post Type": tiktokOnly ? "" : igType,
+        "Instagram Show Reel On Feed": tiktokOnly ? "" : (isVideo ? "TRUE" : "FALSE"),
         "TikTok Post Privacy": "PUBLIC_TO_EVERYONE",
-        "First Comment Text": firstComment,
+        "First Comment Text": tiktokOnly ? "" : firstComment,
       };
       mediaUrls.forEach((u, i) => { row[`Picture Url ${i + 1}`] = u; });
 
@@ -927,7 +930,8 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `freeme-metricool-${startDate}${onlyMissing ? "-12-em-falta" : ""}.csv`;
+    const suffix = onlyMissing ? "-12-em-falta" : tiktokOnly ? "-tiktok-only" : "";
+    a.download = `freeme-metricool-${startDate}${suffix}.csv`;
     a.click();
   }
 
@@ -981,21 +985,29 @@ function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
         </span>
       </label>
 
-      <div className="row tight">
-        <button onClick={() => buildAndDownload(false)} className="btn primary" disabled={!supabasePublicBase}>
+      <div className="row tight" style={{ flexWrap: "wrap" }}>
+        <button onClick={() => buildAndDownload("all")} className="btn primary" disabled={!supabasePublicBase}>
           Download CSV ({posts.length} posts)
         </button>
-        <button onClick={() => buildAndDownload(true)} className="btn" disabled={!supabasePublicBase}>
+        <button onClick={() => buildAndDownload("missing12")} className="btn" disabled={!supabasePublicBase}>
           Download CSV (12 em falta no Metricool)
+        </button>
+        <button onClick={() => buildAndDownload("tiktok-only")} className="btn" disabled={!supabasePublicBase}>
+          Download CSV TikTok only ({posts.length} posts)
         </button>
       </div>
 
       <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
-        ⚠ Os PNGs/MP4s nos URLs do CSV têm de existir no Storage (Fase 3) antes de o Metricool publicar.
+        ⚠ Os JPGs/MP4s nos URLs do CSV têm de existir no Storage (Fase 3) antes de o Metricool publicar.
       </p>
       <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-        ℹ &ldquo;12 em falta&rdquo; = D21 (ambos), D22-morning, D23-evening, D24-morning, D25-evening,
-        D26-morning, D27-evening, D28-morning, D29-evening, D30 (ambos). Linhas 42-61 que o Metricool
+        ℹ &ldquo;TikTok only&rdquo; gera Instagram em branco e só TikTok=TRUE. Usa para re-importar
+        TikTok com slides JPG depois do error &ldquo;image/png is not allowed&rdquo;. Define data
+        de início diferente da do IG (ex: Jun 2) para não sobrepor.
+      </p>
+      <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+        ℹ &ldquo;12 em falta&rdquo; = D21 (ambos), D22-morn, D23-eve, D24-morn, D25-eve,
+        D26-morn, D27-eve, D28-morn, D29-eve, D30 (ambos). Linhas 42-61 que o Metricool
         ignorou no primeiro import.
       </p>
     </div>

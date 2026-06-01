@@ -95,7 +95,7 @@ async function uploadSlide(buffer, path) {
   const { error } = await supabase.storage
     .from(BUCKET)
     .upload(path, buffer, {
-      contentType: "image/png",
+      contentType: "image/jpeg",
       upsert: true,
     });
   if (error) throw new Error(`Upload ${path}: ${error.message}`);
@@ -110,9 +110,10 @@ async function slideAlreadyExists(outPath) {
 }
 
 async function renderOne(browser, post, slide, slideIdx, photoSlideIdxs) {
-  const outPath = `slides/D${post.day}-${post.slot}-${String(slideIdx).padStart(2, "0")}.png`;
+  // JPEG em vez de PNG: TikTok recusa PNG ('image/png' is not allowed,
+  // use 'image/jpeg' or 'image/webp'). IG aceita ambos.
+  const outPath = `slides/D${post.day}-${post.slot}-${String(slideIdx).padStart(2, "0")}.jpg`;
 
-  // Skip se o slide ja existe em Storage (resume seguro depois de falha parcial).
   if (process.env.SKIP_EXISTING_SLIDES !== "false") {
     if (await slideAlreadyExists(outPath)) {
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(outPath);
@@ -152,7 +153,7 @@ async function renderOne(browser, post, slide, slideIdx, photoSlideIdxs) {
       // MJ demoram (que e o caso aqui).
       await page.setContent(html, { waitUntil: "load", timeout: 45000 });
       await page.evaluate(() => document.fonts.ready);
-      const buffer = await page.screenshot({ type: "png", omitBackground: false, timeout: 45000 });
+      const buffer = await page.screenshot({ type: "jpeg", quality: 92, omitBackground: false, timeout: 45000 });
       await page.close();
       const url = await uploadSlide(buffer, outPath);
       return { post: `D${post.day}-${post.slot}`, slide: slideIdx, url };

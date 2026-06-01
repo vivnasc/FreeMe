@@ -35,9 +35,12 @@ export function RenderizadosClient() {
   const grouped = useMemo(() => {
     return ALL_POSTS.map((post) => {
       const slotPrefix = `D${post.day}-${post.slot}`;
-      const pngs = slides
-        .filter((s) => s.name.startsWith(`${slotPrefix}-`) && s.name.endsWith(".png"))
+      // Prefere .jpg (novo, TikTok-compatible). Fallback .png para slides antigos.
+      const allFiles = slides
+        .filter((s) => s.name.startsWith(`${slotPrefix}-`) && (s.name.endsWith(".jpg") || s.name.endsWith(".png")))
         .sort((a, b) => a.name.localeCompare(b.name));
+      const jpgs = allFiles.filter((f) => f.name.endsWith(".jpg"));
+      const pngs = jpgs.length > 0 ? jpgs : allFiles;
       const mp4 = videos.find((v) => v.name === `${slotPrefix}.mp4`);
       const expectedFinal = post.type === "video" ? 1 : post.slides.length;
       const got = post.type === "video" ? (mp4 ? 1 : 0) : pngs.length;
