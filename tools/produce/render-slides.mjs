@@ -54,12 +54,21 @@ async function loadPosts() {
 async function ensureBucket() {
   const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
   if (listErr) throw new Error(`listBuckets: ${listErr.message}`);
-  if (buckets?.some((b) => b.name === BUCKET)) return;
-  const { error } = await supabase.storage.createBucket(BUCKET, { public: true });
-  if (error && !/already exists/i.test(error.message)) {
-    throw new Error(`createBucket ${BUCKET}: ${error.message}`);
+  const existing = buckets?.find((b) => b.name === BUCKET);
+  if (!existing) {
+    const { error } = await supabase.storage.createBucket(BUCKET, { public: true });
+    if (error && !/already exists/i.test(error.message)) {
+      throw new Error(`createBucket ${BUCKET}: ${error.message}`);
+    }
+    console.log(`Created bucket ${BUCKET} (public)`);
+    return;
   }
-  console.log(`Created bucket ${BUCKET}`);
+  if (existing.public !== true) {
+    // Bucket privado: force public para Metricool/IG/TikTok poderem fetch URLs.
+    const { error } = await supabase.storage.updateBucket(BUCKET, { public: true });
+    if (error) throw new Error(`updateBucket ${BUCKET}: ${error.message}`);
+    console.log(`Bucket ${BUCKET} convertido para public`);
+  }
 }
 
 function filterByScope(posts, scope) {

@@ -69,10 +69,17 @@ const BUCKET = "freeme-assets";
 
 async function ensureBucket() {
   const { data: buckets } = await supabase.storage.listBuckets();
-  if (buckets?.some((b) => b.name === BUCKET)) return;
-  const { error } = await supabase.storage.createBucket(BUCKET, { public: true });
-  if (error && !/already exists/i.test(error.message)) {
-    throw new Error(`createBucket ${BUCKET}: ${error.message}`);
+  const existing = buckets?.find((b) => b.name === BUCKET);
+  if (!existing) {
+    const { error } = await supabase.storage.createBucket(BUCKET, { public: true });
+    if (error && !/already exists/i.test(error.message)) {
+      throw new Error(`createBucket ${BUCKET}: ${error.message}`);
+    }
+    return;
+  }
+  if (existing.public !== true) {
+    const { error } = await supabase.storage.updateBucket(BUCKET, { public: true });
+    if (error) throw new Error(`updateBucket ${BUCKET}: ${error.message}`);
   }
 }
 

@@ -822,6 +822,35 @@ function PhaseCard({
 }
 
 // ============== DISTRIBUIR PANEL (Metricool CSV) ==============
+//
+// Notas para proximas campanhas (lessons learned - 1a campanha 30 dias):
+//
+// 1. TikTok REJEITA PNG. Usar sempre JPEG (image/jpeg) ou WebP. render-slides
+//    ja saca JPG por defeito agora. NAO voltar a PNG.
+//
+// 2. Bucket Supabase TEM de ser public. ensureBucket() ja forca via updateBucket
+//    se existir mas estiver private. Se subires assets fora do pipeline,
+//    confirma manualmente no Dashboard.
+//
+// 3. Metricool import CSV tem cap aparente de ~48-50 linhas por import mesmo
+//    em planos Professional (nao documentado). Se a campanha tiver > 48 posts
+//    no mesmo mes, fazer em 2 imports (semana 1-3 + semana 4-5).
+//
+// 4. Posts em Metricool sao UNIFICADOS (IG + TikTok no mesmo row). Delete
+//    apaga ambos os lados. Para postar so um network: edita o post e desactiva
+//    o outro icon manualmente (nao ha bulk).
+//
+// 5. CSV row 1 = header, row 2 = primeiro post. Quando o Metricool diz "Row N
+//    ignored" no resultado, N e index do row no CSV (NAO index do post em
+//    ALL_POSTS). Decodifica com: post = ALL_POSTS[N - 2].
+//
+// 6. Header oficial Metricool tem 93 colunas e Text vem PRIMEIRO. Ordem
+//    importa - usa row[colName] = value, depois map por header.
+//
+// 7. Add Collaborator (para o post duplicar no feed da Vivianne) NAO vai no
+//    CSV - tem de ser activado MANUALMENTE no Metricool depois do import,
+//    post a post.
+//
 function DistribuirPanel({ posts }: { posts: ContentPost[] }) {
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
