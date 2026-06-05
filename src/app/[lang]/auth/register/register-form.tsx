@@ -13,17 +13,20 @@ export function RegisterForm({ lang, dict }: { lang: string; dict: Dict }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [alreadyExists, setAlreadyExists] = useState(false);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const pt = lang === "pt";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setAlreadyExists(false);
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -31,12 +34,32 @@ export function RegisterForm({ lang, dict }: { lang: string; dict: Dict }) {
       },
     });
 
-    if (error) {
-      setError(
-        lang === "pt"
-          ? "Não foi possível criar a conta. Tenta novamente."
-          : "Could not create account. Please try again."
-      );
+    // O Supabase, para nao revelar emails, devolve "sucesso" com identities
+    // vazias quando o email ja existe. Tratamos como ja registado.
+    const obfuscatedExisting =
+      !error && !!data.user && (data.user.identities?.length ?? 0) === 0;
+
+    if (error || obfuscatedExisting) {
+      const msg = error?.message ?? "";
+      const isExisting =
+        obfuscatedExisting ||
+        error?.status === 422 ||
+        /already|registered|exists/i.test(msg);
+
+      if (isExisting) {
+        setAlreadyExists(true);
+        setError(
+          pt
+            ? "Este email já tem conta. Tenta entrar."
+            : "This email already has an account. Try logging in."
+        );
+      } else {
+        setError(
+          pt
+            ? `Não foi possível criar a conta: ${msg}`
+            : `Could not create account: ${msg}`
+        );
+      }
       setLoading(false);
       return;
     }
@@ -106,9 +129,20 @@ export function RegisterForm({ lang, dict }: { lang: string; dict: Dict }) {
       </label>
 
       {error && (
-        <p className="font-sans text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2">
-          {error}
-        </p>
+        <div className="flex flex-col gap-2">
+          <p className="font-sans text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2">
+            {error}
+          </p>
+          {alreadyExists && (
+            <button
+              type="button"
+              onClick={() => router.push(`/${lang}/auth/login`)}
+              className="self-start font-sans text-sm text-barro hover:underline"
+            >
+              {pt ? "Ir para o login" : "Go to login"}
+            </button>
+          )}
+        </div>
       )}
 
       <button
