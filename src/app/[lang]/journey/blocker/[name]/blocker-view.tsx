@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { type BlockerContent } from "@/content/blockers";
 import { createClient } from "@/lib/supabase/client";
 import type { Annotation } from "@/lib/types";
@@ -14,11 +15,13 @@ export function BlockerView({
   blocker,
   savedAnnotations,
   journeyId,
+  companionSrc,
 }: {
   lang: string;
   blocker: BlockerContent;
   savedAnnotations: Annotation[];
   journeyId: string | null;
+  companionSrc?: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("audio");
   const l = lang as "pt" | "en";
@@ -40,6 +43,18 @@ export function BlockerView({
         >
           ← {lang === "pt" ? "voltar" : "back"}
         </Link>
+
+        {companionSrc && (
+          <div className="relative h-44 w-full overflow-hidden rounded-2xl shadow-sm">
+            <Image
+              src={companionSrc}
+              alt={blocker.title[l]}
+              fill
+              className="object-cover object-center"
+              sizes="(max-width: 640px) 100vw, 512px"
+            />
+          </div>
+        )}
 
         <div className="text-center">
           <p className="font-serif italic text-sm text-terracota mb-1">

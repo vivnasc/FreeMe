@@ -1,8 +1,11 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { notFound, redirect } from "next/navigation";
 import { hasLocale } from "../../../dictionaries";
 import { createClient } from "@/lib/supabase/server";
 import { BLOCKERS } from "@/content/blockers";
 import { type BlockerName } from "@/lib/types";
+import { companionImagePath } from "@/content/journey-companions";
 import { BlockerView } from "./blocker-view";
 
 export default async function BlockerPage({
@@ -44,12 +47,20 @@ export default async function BlockerPage({
     .limit(1)
     .single();
 
+  // Presenca da Vivianne: so mostra se a imagem ja foi gerada e colocada em
+  // public/images/journey/<bloqueio>.jpg.
+  const companionPath = companionImagePath(name as BlockerName);
+  const companionSrc = existsSync(join(process.cwd(), "public", companionPath))
+    ? companionPath
+    : null;
+
   return (
     <BlockerView
       lang={lang}
       blocker={blocker}
       savedAnnotations={annotations || []}
       journeyId={journey?.id || null}
+      companionSrc={companionSrc}
     />
   );
 }
