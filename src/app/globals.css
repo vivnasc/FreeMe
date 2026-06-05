@@ -14,7 +14,38 @@
   --font-sans: var(--font-outfit);
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Mata o pull-to-refresh e o bounce do browser: parece app, nao pagina */
+  overscroll-behavior: none;
+}
+
 body {
   background: var(--color-creme);
   color: var(--color-carvao);
+  overscroll-behavior: none;
+  /* Sem flash cinzento ao tocar, sem menu de long-press, sem seleccao */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Mas os campos onde se escreve (diario, login) tem de permitir texto */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Respeitar o notch e a barra inferior (vale 0 fora do modo app instalada) */
+.pwa-safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.pwa-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }

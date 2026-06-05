@@ -27,7 +27,7 @@ export default async function JourneyLayout({
 
   return (
     <>
-      {children}
+      <div className="pwa-safe-top flex flex-1 flex-col">{children}</div>
       <SafetyButton label={dict.safety.helpNow} dict={dict.safety} />
     </>
   );

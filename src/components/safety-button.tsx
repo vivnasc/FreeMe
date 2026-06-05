@@ -23,7 +23,11 @@ export function SafetyButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 rounded-full bg-salvia px-4 py-2 font-sans text-sm text-creme shadow-lg transition-colors hover:bg-salvia/90"
+        style={{
+          bottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+          right: "calc(1.5rem + env(safe-area-inset-right))",
+        }}
+        className="fixed rounded-full bg-salvia px-4 py-2 font-sans text-sm text-creme shadow-lg transition-colors hover:bg-salvia/90"
         aria-label={label}
       >
         {label}
