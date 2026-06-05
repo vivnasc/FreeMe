@@ -4,6 +4,7 @@ import { getDictionary, hasLocale } from "../dictionaries";
 import { createClient } from "@/lib/supabase/server";
 import { BLOCKER_LABELS } from "@/lib/path";
 import { type BlockerName } from "@/lib/types";
+import { InstallAppBanner } from "@/components/install-app-banner";
 
 export default async function JourneyPage({
   params,
@@ -76,6 +77,8 @@ export default async function JourneyPage({
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-12">
       <div className="w-full max-w-lg flex flex-col gap-8">
+        <InstallAppBanner lang={l} />
+
         <h1 className="font-serif text-2xl text-barro text-center">
           {lang === "pt" ? "O teu percurso" : "Your journey"}
         </h1>
