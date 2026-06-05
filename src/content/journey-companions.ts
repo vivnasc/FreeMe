@@ -10,25 +10,25 @@ import { THERAPEUTIC_ORDER, type BlockerName } from "@/lib/types";
 export const CHARACTER_REF =
   "https://cdn.midjourney.com/u/9e6b2fad-a231-497f-9b71-c772cb0e82cd/4c7c7ed6d9a2502d58373d2b0f47824679a64746448f6e1581a0be01baf02e67_384_N.png";
 
-// Parametros comuns: cw 50 mantem o rosto dela mas deixa a cena/postura mudar.
-// Em Midjourney v7 trocar por: --oref <url> --ow 50.
-export const MJ_PARAMS = "--cref " + CHARACTER_REF + " --cw 50 --ar 3:2 --style raw --v 6.1";
+// Parametros comuns. "same woman serene" no inicio reforca a coerencia com a
+// cref. Sem --cw, em v7.
+export const MJ_PARAMS = "--cref " + CHARACTER_REF + " --ar 3:2 --style raw --v 7";
 
-// Cena + postura especificas de cada bloqueio: ela encarna a superacao
-// daquela emocao, como presenca calma que acompanha.
+// Cena + postura especificas de cada bloqueio (clausula de accao): ela encarna
+// a superacao daquela emocao, como presenca calma que acompanha.
 const SCENES: Record<BlockerName, string> = {
-  peso: "A serene woman gently setting a heavy woven basket down onto a rustic wooden table, shoulders softening, the quiet exhale of relief as a weight is finally released",
+  peso: "gently setting a heavy woven basket down onto a rustic wooden table, shoulders softening, the quiet exhale of relief as a weight is finally released",
   vazio:
-    "A serene woman standing by a sunlit window holding a warm cup with both hands, soft morning light filling a quiet warm room, a feeling of being gently filled and present",
+    "standing by a sunlit window holding a warm cup with both hands, soft morning light filling a quiet warm room, a feeling of being gently filled and present",
   culpa:
-    "A serene woman resting one open hand softly over her own heart, eyes lowered then lifting with gentle self-forgiveness, tender compassion toward herself",
-  medo: "A serene woman standing calmly in an open doorway facing soft morning light, one foot stepping forward with quiet courage, steady and unafraid",
+    "resting one open hand softly over her own heart, eyes lowered then lifting with gentle self-forgiveness, tender compassion toward herself",
+  medo: "standing calmly in an open doorway facing soft morning light, one foot stepping forward with quiet courage, steady and unafraid",
   vergonha:
-    "A serene woman standing tall in soft warm light, head lifted gently, shoulders open and at ease, dignified self-acceptance with nothing to hide",
+    "standing tall in soft warm light, head lifted gently, shoulders open and at ease, dignified self-acceptance with nothing to hide",
   magoa:
-    "A serene woman cradling a small green seedling in her cupped hands, tending it tenderly, the gentle healing of an old wound",
+    "cradling a small green seedling in her cupped hands, tending it tenderly, the gentle healing of an old wound",
   rancor:
-    "A serene woman opening both hands toward a golden field at sunset, releasing dried leaves to the wind, letting go into freedom and lightness",
+    "opening both hands toward a golden field at sunset, releasing dried leaves to the wind, letting go into freedom and lightness",
 };
 
 const STYLE =
@@ -41,7 +41,7 @@ export interface JourneyCompanion {
 }
 
 export function buildMjPrompt(blocker: BlockerName): string {
-  return `${SCENES[blocker]}, ${STYLE} ${MJ_PARAMS}`;
+  return `same woman serene ${SCENES[blocker]}, ${STYLE} ${MJ_PARAMS}`;
 }
 
 export function companionImagePath(blocker: BlockerName): string {
