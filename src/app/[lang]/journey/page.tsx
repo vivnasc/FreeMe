@@ -52,6 +52,15 @@ export default async function JourneyPage({
     );
   }
 
+  // Tem percurso mas ainda nao pagou: enviar para o unlock. O diagnostico
+  // (sem percurso) continua livre, por isso o guarda fica depois do if acima.
+  const { data: profile } = await supabase
+    .from("freeme_profiles")
+    .select("paid")
+    .eq("id", user.id)
+    .single();
+  if (!profile?.paid) redirect(`/${lang}/journey/unlock`);
+
   const pathOrder = (journey.path_order || []) as BlockerName[];
   const progress = (journey.freeme_blocker_progress || []) as {
     id: string;

@@ -20,6 +20,15 @@ export default async function BlockerPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/${lang}/auth/login`);
 
+  // Conteudo pago: so acessivel a quem comprou. Sem este guarda, qualquer
+  // utilizadora registada podia abrir /journey/blocker/<nome> e ler tudo.
+  const { data: profile } = await supabase
+    .from("freeme_profiles")
+    .select("paid")
+    .eq("id", user.id)
+    .single();
+  if (!profile?.paid) redirect(`/${lang}/journey/unlock`);
+
   const { data: annotations } = await supabase
     .from("freeme_annotations")
     .select("*")

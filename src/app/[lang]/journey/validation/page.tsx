@@ -17,6 +17,14 @@ export default async function ValidationPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/${lang}/auth/login`);
 
+  // Validacao final faz parte do percurso pago.
+  const { data: profile } = await supabase
+    .from("freeme_profiles")
+    .select("paid")
+    .eq("id", user.id)
+    .single();
+  if (!profile?.paid) redirect(`/${lang}/journey/unlock`);
+
   const { data: journey } = await supabase
     .from("freeme_journeys")
     .select("*, freeme_diagnostics(*)")
