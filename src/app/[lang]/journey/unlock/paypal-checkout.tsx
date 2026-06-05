@@ -36,7 +36,7 @@ export function PayPalCheckout({ lang }: { lang: string }) {
 
     if (res.ok) {
       setStatus("success");
-      router.push(`/${lang}/journey`);
+      router.push(`/${lang}/journey/sucesso`);
       router.refresh();
     } else {
       setStatus("error");

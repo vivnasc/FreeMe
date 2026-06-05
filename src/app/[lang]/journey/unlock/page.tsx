@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BLOCKER_LABELS } from "@/lib/path";
 import { type BlockerName } from "@/lib/types";
 import Link from "next/link";
+import Image from "next/image";
 import { PayPalCheckout } from "./paypal-checkout";
 
 export default async function UnlockPage({
@@ -44,6 +45,16 @@ export default async function UnlockPage({
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-16">
       <div className="w-full max-w-md flex flex-col gap-8 text-center">
+        <div className="relative h-56 w-full overflow-hidden rounded-3xl shadow-lg">
+          <Image
+            src="/images/gratidao-venda.jpg"
+            alt="Vivianne dos Santos"
+            fill
+            className="object-cover object-[50%_30%]"
+            priority
+          />
+        </div>
+
         <div>
           <p className="font-serif text-lg text-salvia mb-2">
             {lang === "pt"
