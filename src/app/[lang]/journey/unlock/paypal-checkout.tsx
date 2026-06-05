@@ -86,11 +86,10 @@ export function PayPalCheckout({ lang }: { lang: string }) {
                 ],
               });
             }}
-            onApprove={async (_data, actions) => {
-              const order = await actions.order?.capture();
-              if (order) {
-                await onApprove({ orderID: order.id! });
-              }
+            onApprove={async (data) => {
+              // A captura e feita no servidor (ver /api/paypal/capture), que
+              // verifica a ordem com o PayPal antes de conceder acesso.
+              await onApprove({ orderID: data.orderID });
             }}
             onError={() => setStatus("error")}
           />
