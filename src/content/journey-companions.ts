@@ -6,13 +6,13 @@ import { THERAPEUTIC_ORDER, type BlockerName } from "@/lib/types";
 // Depois de geradas, ficam em public/images/journey/<bloqueio>.jpg e aparecem
 // no topo da pagina do bloqueio.
 
-// Referencia de personagem da Vivianne (Midjourney character reference).
+// Referencia da Vivianne (Midjourney v7 Omni Reference).
 export const CHARACTER_REF =
   "https://cdn.midjourney.com/u/9e6b2fad-a231-497f-9b71-c772cb0e82cd/4c7c7ed6d9a2502d58373d2b0f47824679a64746448f6e1581a0be01baf02e67_384_N.png";
 
-// Parametros comuns. "same woman serene" no inicio reforca a coerencia com a
-// cref. Sem --cw, em v7.
-export const MJ_PARAMS = "--cref " + CHARACTER_REF + " --ar 3:2 --style raw --v 7";
+// Parametros comuns. "same woman serene" no inicio reforca a coerencia. Em v7
+// usa-se Omni Reference (--oref + --ow, ate 1000); --cw nao e suportado.
+export const MJ_PARAMS = "--oref " + CHARACTER_REF + " --ow 800 --ar 3:2 --style raw --v 7";
 
 // Cena + postura especificas de cada bloqueio (clausula de accao): ela encarna
 // a superacao daquela emocao, como presenca calma que acompanha.
