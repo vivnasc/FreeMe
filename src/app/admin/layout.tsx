@@ -26,6 +26,9 @@ export default async function AdminLayout({
             <AdminNavLink href="/admin" exact>
               <span className="nav-num">0</span> Studio
             </AdminNavLink>
+            <AdminNavLink href="/admin/saude">
+              <span className="nav-num">+</span> Saúde
+            </AdminNavLink>
             <AdminNavLink href="/admin/conteudo">
               <span className="nav-num">1</span> Conteúdo
             </AdminNavLink>
