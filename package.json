@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import tsx --test tests/*.test.ts",
     "produce:dump": "tsx tools/produce/dump-posts.ts",
     "produce:render": "node tools/produce/render-slides.mjs",
     "produce:videos": "node tools/produce/render-videos.mjs"

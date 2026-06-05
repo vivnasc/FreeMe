@@ -5,7 +5,7 @@ import { updateSession } from "@/lib/supabase/proxy";
 const locales = ["pt", "en"];
 const defaultLocale = "pt";
 
-function getPreferredLocale(request: NextRequest): string {
+export function getPreferredLocale(request: NextRequest): string {
   const acceptLang = request.headers.get("accept-language") || "";
 
   // Respeita a ordem e os q-values do header, em vez de devolver sempre o

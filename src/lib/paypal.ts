@@ -2,18 +2,24 @@
 // Usa client_id (publico) + client_secret (server-only) para obter um token
 // e capturar a ordem no servidor, em vez de confiar no browser.
 
-const PAYPAL_API_BASE =
-  process.env.PAYPAL_API_BASE || "https://api-m.sandbox.paypal.com";
-const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
-const CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || "";
+// Lido no momento da chamada (nao no import) para ser robusto e testavel.
+function apiBase(): string {
+  return process.env.PAYPAL_API_BASE || "https://api-m.sandbox.paypal.com";
+}
+function clientId(): string {
+  return process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
+}
+function clientSecret(): string {
+  return process.env.PAYPAL_CLIENT_SECRET || "";
+}
 
 export function isPayPalConfigured(): boolean {
-  return Boolean(CLIENT_ID && CLIENT_SECRET);
+  return Boolean(clientId() && clientSecret());
 }
 
 async function getAccessToken(): Promise<string> {
-  const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
-  const res = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+  const auth = Buffer.from(`${clientId()}:${clientSecret()}`).toString("base64");
+  const res = await fetch(`${apiBase()}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${auth}`,
@@ -41,7 +47,7 @@ export interface CaptureResult {
 export async function capturePayPalOrder(orderID: string): Promise<CaptureResult> {
   const token = await getAccessToken();
   const res = await fetch(
-    `${PAYPAL_API_BASE}/v2/checkout/orders/${encodeURIComponent(orderID)}/capture`,
+    `${apiBase()}/v2/checkout/orders/${encodeURIComponent(orderID)}/capture`,
     {
       method: "POST",
       headers: {
@@ -79,7 +85,7 @@ export async function capturePayPalOrder(orderID: string): Promise<CaptureResult
 
 async function getPayPalOrder(orderID: string, token: string): Promise<CaptureResult> {
   const res = await fetch(
-    `${PAYPAL_API_BASE}/v2/checkout/orders/${encodeURIComponent(orderID)}`,
+    `${apiBase()}/v2/checkout/orders/${encodeURIComponent(orderID)}`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
   const data = await res.json().catch(() => null);
