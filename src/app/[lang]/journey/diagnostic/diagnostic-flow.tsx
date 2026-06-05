@@ -20,10 +20,12 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
     trauma: boolean;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const question = DIAGNOSTIC_QUESTIONS[currentQ];
   const l = lang as "pt" | "en";
+  const pt = lang === "pt";
 
   function selectOption(option: DiagnosticOption) {
     const next = [...selections, option];
@@ -44,13 +46,23 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
 
   async function startJourney() {
     if (!result) return;
+    setError("");
     setSaving(true);
 
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push(`/${lang}/auth/login`); return; }
+    if (!user) {
+      // Sem sessao nao da para guardar o percurso. Manda criar conta / entrar.
+      setError(
+        pt
+          ? "Precisas de ter conta para guardar o teu percurso. A levar-te ao registo..."
+          : "You need an account to save your journey. Taking you to sign up..."
+      );
+      setTimeout(() => router.push(`/${lang}/auth/register`), 1200);
+      return;
+    }
 
-    const { data: diag } = await supabase
+    const { data: diag, error: diagErr } = await supabase
       .from("freeme_diagnostics")
       .insert({
         user_id: user.id,
@@ -67,9 +79,16 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
       .select("id")
       .single();
 
-    if (!diag) { setSaving(false); return; }
+    if (diagErr || !diag) {
+      setError(
+        (pt ? "Não foi possível guardar o diagnóstico" : "Could not save the diagnostic") +
+          (diagErr?.message ? `: ${diagErr.message}` : ".")
+      );
+      setSaving(false);
+      return;
+    }
 
-    const { data: journey } = await supabase
+    const { data: journey, error: journeyErr } = await supabase
       .from("freeme_journeys")
       .insert({
         user_id: user.id,
@@ -80,15 +99,30 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
       .select("id")
       .single();
 
-    if (!journey) { setSaving(false); return; }
+    if (journeyErr || !journey) {
+      setError(
+        (pt ? "Não foi possível criar o percurso" : "Could not create the journey") +
+          (journeyErr?.message ? `: ${journeyErr.message}` : ".")
+      );
+      setSaving(false);
+      return;
+    }
 
     for (let i = 0; i < result.path.length; i++) {
-      await supabase.from("freeme_blocker_progress").insert({
+      const { error: progErr } = await supabase.from("freeme_blocker_progress").insert({
         journey_id: journey.id,
         blocker_name: result.path[i],
         order_in_path: i,
         unlocked_at: i === 0 ? new Date().toISOString() : null,
       });
+      if (progErr) {
+        setError(
+          (pt ? "Não foi possível preparar os bloqueios" : "Could not prepare the blocks") +
+            `: ${progErr.message}`
+        );
+        setSaving(false);
+        return;
+      }
     }
 
     router.push(`/${lang}/journey/unlock`);
@@ -183,6 +217,12 @@ export function DiagnosticFlow({ lang }: { lang: string }) {
             ? `O teu percurso tem ${result.path.length} bloqueio${result.path.length > 1 ? "s" : ""}, pela ordem que te protege.`
             : `Your journey has ${result.path.length} block${result.path.length > 1 ? "s" : ""}, in the order that protects you.`}
         </p>
+
+        {error && (
+          <p className="w-full font-sans text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
 
         <button
           onClick={startJourney}

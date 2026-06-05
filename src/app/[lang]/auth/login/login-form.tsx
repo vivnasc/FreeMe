@@ -28,10 +28,17 @@ export function LoginForm({ lang, dict }: { lang: string; dict: Dict }) {
     });
 
     if (error) {
+      const notConfirmed =
+        error.code === "email_not_confirmed" ||
+        /not confirmed|confirm/i.test(error.message);
       setError(
-        lang === "pt"
-          ? "Email ou palavra-passe incorretos."
-          : "Incorrect email or password."
+        notConfirmed
+          ? lang === "pt"
+            ? "Tens de confirmar o email antes de entrar. Verifica a tua caixa de entrada (e o spam)."
+            : "You must confirm your email before signing in. Check your inbox (and spam)."
+          : lang === "pt"
+            ? "Email ou palavra-passe incorretos."
+            : "Incorrect email or password."
       );
       setLoading(false);
       return;
