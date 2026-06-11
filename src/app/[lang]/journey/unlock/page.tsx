@@ -6,6 +6,7 @@ import { type BlockerName } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import { PayPalCheckout } from "./paypal-checkout";
+import { WAITLIST_MODE } from "@/lib/launch";
 
 export default async function UnlockPage({
   params,
@@ -92,15 +93,36 @@ export default async function UnlockPage({
             : "Guided audio, writing exercises, private annotations, and the final validation."}
         </p>
 
-        <div className="rounded-2xl border border-barro/20 bg-creme p-6 flex flex-col gap-4">
-          <p className="font-sans text-sm text-carvao/60">
-            {lang === "pt"
-              ? "Pagamento único. Acesso vitalício ao percurso completo."
-              : "One-time payment. Lifetime access to the full journey."}
-          </p>
+        {WAITLIST_MODE ? (
+          <div className="rounded-2xl border border-barro/20 bg-creme p-6 flex flex-col gap-4">
+            <p className="font-serif text-lg text-barro">
+              {lang === "pt"
+                ? "A travessia ainda não abriu."
+                : "The crossing has not opened yet."}
+            </p>
+            <p className="font-sans text-sm text-carvao/60">
+              {lang === "pt"
+                ? "Estamos a afinar os últimos detalhes. Deixa o teu email e és das primeiras a saber quando abrir."
+                : "We're shaping the final details. Leave your email and be among the first to know when it opens."}
+            </p>
+            <Link
+              href={`/${lang}#lista`}
+              className="self-start rounded-full bg-barro px-7 py-3 font-sans text-sm font-medium text-creme transition-colors hover:bg-barro-symbol"
+            >
+              {lang === "pt" ? "Entrar na lista de espera" : "Join the waitlist"}
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-barro/20 bg-creme p-6 flex flex-col gap-4">
+            <p className="font-sans text-sm text-carvao/60">
+              {lang === "pt"
+                ? "Pagamento único. Acesso vitalício ao percurso completo."
+                : "One-time payment. Lifetime access to the full journey."}
+            </p>
 
-          <PayPalCheckout lang={lang} />
-        </div>
+            <PayPalCheckout lang={lang} />
+          </div>
+        )}
 
         <Link
           href={`/${lang}/journey`}

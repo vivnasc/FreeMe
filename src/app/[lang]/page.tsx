@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getDictionary, hasLocale } from "./dictionaries";
 import { SafetyButton } from "@/components/safety-button";
+import { WaitlistForm } from "@/components/waitlist-form";
+import { WAITLIST_MODE } from "@/lib/launch";
 
 export default async function LandingPage({
   params,
@@ -50,9 +52,14 @@ export default async function LandingPage({
           <p className="font-serif italic text-[#F0C9B0] text-xl mb-2">
             {lang === "pt" ? "A Travessia da Mãe" : "A Mother's Crossing"}
           </p>
-          <p className="font-sans text-xs text-creme/50 tracking-widest uppercase mb-9">
+          <p className="font-sans text-xs text-creme/50 tracking-widest uppercase mb-5">
             {lang === "pt" ? "uma app, um percurso, uma travessia" : "an app, a journey, a crossing"}
           </p>
+          {WAITLIST_MODE && (
+            <p className="inline-block rounded-full border border-creme/40 px-4 py-1.5 font-sans text-xs tracking-widest uppercase text-creme/80 mb-9">
+              {lang === "pt" ? "Em breve · entra na lista de espera" : "Coming soon · join the waitlist"}
+            </p>
+          )}
           <p className="text-lg font-extralight max-w-[520px] mx-auto mb-4">
             {lang === "pt"
               ? "Toda a gente fala da criança ferida. Ninguém fala da culpa que tu carregas, em silêncio, por achares que falhaste com ele."
@@ -65,10 +72,12 @@ export default async function LandingPage({
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href={`/${lang}/auth/register`}
+              href={WAITLIST_MODE ? "#lista" : `/${lang}/auth/register`}
               className="inline-block bg-creme text-barro px-11 py-4 rounded-full text-base font-normal tracking-wide transition-transform hover:-translate-y-0.5"
             >
-              {lang === "pt" ? "Descobrir o meu bloqueio" : "Discover my block"}
+              {WAITLIST_MODE
+                ? lang === "pt" ? "Entrar na lista de espera" : "Join the waitlist"
+                : lang === "pt" ? "Descobrir o meu bloqueio" : "Discover my block"}
             </Link>
             <Link
               href={`/${otherLang}`}
@@ -282,8 +291,8 @@ export default async function LandingPage({
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="bg-[radial-gradient(130%_90%_at_50%_100%,#6E7857,#8C4A36_70%)] text-creme py-[90px] px-6 text-center">
+      {/* CTA FINAL / LISTA DE ESPERA */}
+      <section id="lista" className="bg-[radial-gradient(130%_90%_at_50%_100%,#6E7857,#8C4A36_70%)] text-creme py-[90px] px-6 text-center">
         <div className="max-w-[760px] mx-auto">
           <h2 className="font-serif font-light text-[2.4rem] leading-tight mb-4">
             {lang === "pt" ? (
@@ -292,22 +301,41 @@ export default async function LandingPage({
               <>You did not come late.<br /><span className="italic font-medium text-[#F0C9B0]">You came in time for yourself.</span></>
             )}
           </h2>
-          <p className="font-extralight max-w-[480px] mx-auto mb-4 text-[#EAD6C3]">
-            {lang === "pt"
-              ? "A travessia começa quando tu decidires pousar o que não é teu."
-              : "The crossing begins when you decide to lay down what is not yours."}
-          </p>
-          <p className="font-sans text-sm max-w-[420px] mx-auto mb-9 text-creme/50">
-            {lang === "pt"
-              ? "O diagnóstico é grátis. Vês o teu mapa, decides se queres fazer a travessia."
-              : "The diagnostic is free. See your map, then decide if you want to make the crossing."}
-          </p>
-          <Link
-            href={`/${lang}/auth/register`}
-            className="inline-block bg-creme text-barro px-11 py-4 rounded-full text-base font-normal tracking-wide transition-transform hover:-translate-y-0.5"
-          >
-            {lang === "pt" ? "Fazer o diagnóstico grátis" : "Take the free diagnostic"}
-          </Link>
+
+          {WAITLIST_MODE ? (
+            <>
+              <p className="font-extralight max-w-[480px] mx-auto mb-3 text-[#EAD6C3]">
+                {lang === "pt"
+                  ? "Estamos a afinar os últimos detalhes da travessia, com o cuidado que ela merece."
+                  : "We are shaping the final details of the crossing, with the care it deserves."}
+              </p>
+              <p className="font-sans text-sm max-w-[440px] mx-auto mb-9 text-creme/60">
+                {lang === "pt"
+                  ? "Deixa o teu email. Avisamos-te em primeira mão assim que abrir."
+                  : "Leave your email. We'll let you know first the moment it opens."}
+              </p>
+              <WaitlistForm lang={lang} />
+            </>
+          ) : (
+            <>
+              <p className="font-extralight max-w-[480px] mx-auto mb-4 text-[#EAD6C3]">
+                {lang === "pt"
+                  ? "A travessia começa quando tu decidires pousar o que não é teu."
+                  : "The crossing begins when you decide to lay down what is not yours."}
+              </p>
+              <p className="font-sans text-sm max-w-[420px] mx-auto mb-9 text-creme/50">
+                {lang === "pt"
+                  ? "O diagnóstico é grátis. Vês o teu mapa, decides se queres fazer a travessia."
+                  : "The diagnostic is free. See your map, then decide if you want to make the crossing."}
+              </p>
+              <Link
+                href={`/${lang}/auth/register`}
+                className="inline-block bg-creme text-barro px-11 py-4 rounded-full text-base font-normal tracking-wide transition-transform hover:-translate-y-0.5"
+              >
+                {lang === "pt" ? "Fazer o diagnóstico grátis" : "Take the free diagnostic"}
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
